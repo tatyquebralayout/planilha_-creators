@@ -1,179 +1,234 @@
 /**
- * Exporta o calendário de reuniões para o Google Calendar
- * Requer autorização adicional para o Google Calendar
+ * CONSTANTES GLOBAIS
+ * Definições e configurações usadas em todo o sistema
  */
-function exportarCalendario() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var calSheet = ss.getSheetByName("Calendário de Reuniões");
-  
-  if(!calSheet) {
-    SpreadsheetApp.getUi().alert("Guia de Calendário não encontrada!");
-    return;
-  }
-  
-  var data = calSheet.getDataRange().getValues();
-  var ui = SpreadsheetApp.getUi();
-  
-  try {
-    var calendar = CalendarApp.getDefaultCalendar();
-    var contador = 0;
-    
-    // Começa da linha 1 (pula o cabeçalho)
-    for(var i = 1; i < data.length; i++) {
-      var dataReuniao = data[i][0]; // Data
-      var horario = data[i][1]; // Horário
-      var creator = data[i][2]; // Nome Creator
-      var plataforma = data[i][3]; // Plataforma
-      var link = data[i][4]; // Link
-      
-      // Verifica se tem data e hora válidas
-      if(dataReuniao && horario) {
-        // Cria uma data completa concatenando data e hora
-        var dataCompleta = new Date(dataReuniao);
-        var horaParts = horario.split(":");
-        if(horaParts.length >= 2) {
-          dataCompleta.setHours(parseInt(horaParts[0]), parseInt(horaParts[1]));
-          
-          // Cria evento de 1 hora
-          var endTime = new Date(dataCompleta.getTime() + 60 * 60 * 1000);
-          
-          // Descrição do evento
-          var desc = "Reunião com creator: " + creator;
-          if(plataforma) desc += "\nPlataforma: " + plataforma;
-          if(link) desc += "\nLink: " + link;
-          
-          // Cria o evento
-          calendar.createEvent(
-            "Reunião: " + creator,
-            dataCompleta,
-            endTime,
-            {description: desc}
-          );
-          
-          contador++;
-        }
-      }
-    }
-    
-    ui.alert("Calendário exportado com sucesso! " + contador + " eventos criados.");
-  } catch(e) {
-    ui.alert("Erro ao exportar para o calendário: " + e.toString());
-  }
-}
+
+// Constantes de Status e Estados
+const STATUS_OPTIONS = [
+  "Não Contatado",
+  "Contatado", 
+  "Aguardando Resposta",
+  "Reunião Agendada",
+  "Confirmado",
+  "Não Interessado",
+  "Parceria Fechada",
+  "Parceria Ativa",
+  "Em Renovação",
+  "Encerrado"
+];
+
+const STATUS_CONTEUDO = [
+  "Planejado",
+  "Em Produção",
+  "Aprovado",
+  "Publicado",
+  "Em Análise",
+  "Concluído"
+];
+
+const STATUS_QUALIFICACAO = [
+  "Excelente (20-25)",
+  "Bom (15-19)",
+  "Regular (10-14)",
+  "Baixo Potencial (<10)"
+];
+
+// Constantes de Categorização
+const PRIORIDADE_OPTIONS = [
+  "Nível 1 (Alta)",
+  "Nível 2 (Média)", 
+  "Nível 3 (Baixa)",
+  "Lista de Espera"
+];
+
+const ETAPAS_JORNADA = [
+  "Identificação do Problema",
+  "Exploração da Solução",
+  "Construção de Requisitos",
+  "Seleção",
+  "Compra/Conversão",
+  "Retenção",
+  "Advocacia"
+];
+
+const NIVEL_PERSONALIZACAO = [
+  "Básico",
+  "Intermediário",
+  "Avançado",
+  "Premium"
+];
+
+const SEGMENTO_OPTIONS = [
+  "Macro",
+  "Estratégico",
+  "Crescimento",
+  "Oportunidade"
+];
+
+// Constantes de Conteúdo e Plataformas
+const FORMATO_CONTEUDO = [
+  "Post Feed",
+  "Story",
+  "Reels/TikTok",
+  "Live",
+  "IGTV/YouTube",
+  "Podcast",
+  "Blog",
+  "Newsletter",
+  "Webinar",
+  "Evento Presencial"
+];
+
+const PLATAFORMAS = [
+  "Instagram",
+  "TikTok",
+  "YouTube",
+  "Twitter",
+  "LinkedIn",
+  "Twitch",
+  "Facebook",
+  "Pinterest",
+  "Podcast",
+  "Blog",
+  "Newsletter",
+  "Outra"
+];
+
+// Constantes de Tempo e Períodos
+const CHECKPOINT_OPTIONS = [
+  "1º Trim 2023",
+  "2º Trim 2023",
+  "3º Trim 2023",
+  "4º Trim 2023",
+  "1º Trim 2024",
+  "2º Trim 2024",
+  "3º Trim 2024",
+  "4º Trim 2024"
+];
 
 /**
- * Cria um menu personalizado na interface com mais opções
+ * FUNÇÕES DE INICIALIZAÇÃO E CONFIGURAÇÃO
+ */
+
+/**
+ * Inicializa o menu personalizado na planilha
  */
 function onOpen() {
   var ui = SpreadsheetApp.getUi();
+  
   ui.createMenu('Gestão de Creators')
     .addItem('Criar Planilha Completa', 'criarPlanilhaCompleta')
+    .addSeparator()
     .addItem('Adicionar Creator Exemplo', 'criarCreatorExemplo')
-    .addItem('Exportar Calendário', 'exportarCalendario')
-    .addItem('Gerar Relatório', 'gerarRelatorio')
     .addItem('Atualizar Estatísticas', 'atualizarEstatisticas')
+    .addSeparator()
+    .addItem('Exportar Calendário', 'exportarCalendario')
+    .addItem('Sincronizar Calendário', 'sincronizarCalendario')
+    .addSeparator()
+    .addItem('Gerar Relatório de Desempenho', 'gerarRelatorioDesempenho')
+    .addItem('Gerar Análise e Insights', 'gerarAnaliseInsights')
+    .addSeparator()
+    .addItem('Verificar Tarefas Pendentes', 'verificarTarefasPendentes')
+    .addItem('Limpar Dados Antigos', 'limparDadosAntigos')
+    .addSeparator()
+    .addItem('Configurar Gatilhos Automáticos', 'configurarGatilhosAutomaticos')
+    .addItem('Gerar Backup', 'gerarBackup')
     .addToUi();
 }
 
-function getTopPlataforma(sheet) {
-  var data = sheet.getDataRange().getValues();
-  var plataformas = {};
-  
-  // Coluna 4 é a plataforma principal
-  for (var i = 1; i < data.length; i++) {
-    var plataforma = data[i][4]; // Coluna E (índice 4)
-    if (plataforma) {
-      if (!plataformas[plataforma]) {
-        plataformas[plataforma] = 0;
-      }
-      plataformas[plataforma]++;
-    }
-  }
-  
-  var topPlataforma = "";
-  var maxCount = 0;
-  
-  for (var plat in plataformas) {
-    if (plataformas[plat] > maxCount) {
-      maxCount = plataformas[plat];
-      topPlataforma = plat;
-    }
-  }
-  
-  return topPlataforma;
-}
-
-function getTopQualificacao(ss) {
-  var qualSheet = ss.getSheetByName("Qualificação dos Creators");
-  if (!qualSheet) return "N/A";
-  
-  var data = qualSheet.getDataRange().getValues();
-  var excelentes = 0;
-  var total = 0;
-  
-  // Coluna 7 é a pontuação total, 8 é o status
-  for (var i = 1; i < data.length; i++) {
-    if (data[i][0]) { // Se tem um nome
-      total++;
-      if (data[i][8] == "Excelente" || data[i][8] == "Excelente (20-25)") {
-        excelentes++;
-      }
-    }
-  }
-  
-  if (total === 0) return "0%";
-  return Math.round(excelentes / total * 100) + "%";
-}
-
-function getTaxaConversao(sheet) {
-  var data = sheet.getDataRange().getValues();
-  var contatados = 0;
-  var parcerias = 0;
-  
-  // Coluna 11 é o status
-  for (var i = 1; i < data.length; i++) {
-    if (data[i][11] && data[i][11] != "Não Contatado") { // Se foi contatado
-      contatados++;
-      if (data[i][11] == "Parceria Fechada" || data[i][11] == "Parceria Ativa") {
-        parcerias++;
-      }
-    }
-  }
-  
-  if (contatados === 0) return "0%";
-  return Math.round(parcerias / contatados * 100) + "%";
-}
-
-function getMediaEngajamento(sheet) {
-  var data = sheet.getDataRange().getValues();
-  var engajamentos = [];
-  
-  // Coluna 6 é o engajamento, coluna 11 é o status
-  for (var i = 1; i < data.length; i++) {
-    if ((data[i][11] == "Parceria Fechada" || data[i][11] == "Parceria Ativa") && data[i][6]) {
-      engajamentos.push(data[i][6]);
-    }
-  }
-  
-  if (engajamentos.length === 0) return "0";
-  
-  var soma = 0;
-  for (var i = 0; i < engajamentos.length; i++) {
-    soma += engajamentos[i];
-  }
-  
-  return (soma / engajamentos.length * 100).toFixed(2);
-}
-
 /**
- * Funções auxiliares para o relatório
+ * Função principal para criar/redefinir todas as planilhas
  */
-function getWeekNumber(d) {
-  d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-  d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay()||7));
-  var yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
-  var weekNo = Math.ceil(( ( (d - yearStart) / 86400000) + 1)/7);
-  return weekNo;
+function criarPlanilhaCompleta() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  var guias = [
+    // Página de Instruções e Apresentação
+    {nome: "Página de Instruções", colunas: ["Instruções de Uso da Planilha"]},
+    {nome: "Sumário Executivo", colunas: ["Resumo do Programa de Creators", "Indicadores Principais", "Período Atual", "Status Geral"]},
+    {nome: "Jornada do Seguidor", colunas: ["Mapeamento da Jornada de Consumo"]},
+    
+    // Gestão de Creators (núcleo)
+    {nome: "Guia Principal", colunas: ["ID", "Nome", "Categoria", "Nicho Específico", "Plataforma Principal", "Seguidores", "Engajamento (%)", "Email", "WhatsApp", "Link Perfil", "Data Primeiro Contato", "Status Contato", "Próxima Ação", "Data Reunião", "Horário Reunião", "Responsável Interno", "Prioridade", "Etapa Jornada Compra", "Nível Personalização", "Observações"]},
+    {nome: "Calendário de Reuniões", colunas: ["Data", "Horário", "Nome Creator", "Plataforma (Zoom/Meet)", "Link da Reunião", "Status da Reunião"]},
+    {nome: "Histórico de Campanhas", colunas: ["ID Creator", "Nome Creator", "Data Campanha", "Tipo Campanha", "Resultado", "Métricas de Desempenho", "ROI Estimado", "Feedback Creator"]},
+    
+    // Análise e Qualificação
+    {nome: "Qualificação dos Creators", colunas: ["Nome Creator", "Potencial Alcance (1-5)", "Relevância para Audiência (1-5)", "Compatibilidade com Marca (1-5)", "Qualidade de Conteúdo (1-5)", "Engajamento da Audiência (1-5)", "Histórico de Conversão (1-5)", "Pontuação Total", "Status Qualificação", "Segmento", "Nível de Prioridade"]},
+    {nome: "Perfil Ideal de Creator", colunas: ["Critério", "Perfil Ideal", "Creator 1", "Creator 2", "Creator 3", "Creator 4", "Creator 5", "Creator 6", "Creator 7", "Creator 8"]},
+    {nome: "Perfil Detalhado do Creator", colunas: ["Nome Creator", "Papel na Decisão", "Objetivos Pessoais", "Riscos ou Objeções", "Estilo de Comunicação", "Influenciadores", "Necessidades Específicas", "Histórico de Relacionamento"]},
+    {nome: "Análise de Interesses", colunas: ["Creators Envolvidos", "Interesses Compartilhados", "Pontos de Divergência", "Potencial de Colaboração", "Ações Recomendadas"]},
+    
+    // Planejamento Estratégico
+    {nome: "Alinhamento Estratégico", colunas: ["Objetivo de Negócio", "Estratégia com Creators", "Indicadores", "Métricas de Sucesso", "Tática", "Responsável", "Status"]},
+    {nome: "Alocação de Recursos", colunas: ["Categoria", "Orçamento Estimado", "Orçamento Realizado", "Variação", "Observações"]},
+    {nome: "Manual de Engajamento", colunas: ["Etapa da Jornada", "Ações de Marketing", "Ações de Vendas", "Canais Específicos", "Responsável pela Ação"]},
+    
+    // Planejamento de Conteúdo
+    {nome: "Plano de Conteúdo", colunas: ["Tipo de Conteúdo", "Nível de Personalização", "Detalhes da Personalização", "Personalização por Segmento", "Personalização por Creator", "Recursos Necessários"]},
+    {nome: "Calendário Editorial", colunas: ["Semana", "Creator", "Tema", "Formato", "Plataforma", "Data Publicação", "Status", "Link do Conteúdo", "Métricas", "Observações"]},
+    {nome: "Modelo de Mensagens", colunas: ["Tipo Mensagem", "Texto Modelo", "Tempo Médio Resposta (dias)", "Tipo de Resposta", "Etapa da Prospecção", "Responsável", "Variantes para Testes"]},
+    
+    // Métricas e Análises
+    {nome: "Métricas de Desempenho", colunas: ["Categoria", "Tipo", "Métrica", "Checkpoint 1", "Checkpoint 2", "Checkpoint 3", "Checkpoint 4", "Checkpoint 5", "Meta", "Realizado", "Status"]},
+    {nome: "Estatísticas Gerais", colunas: ["Total Creators Captados", "Total Reuniões Agendadas", "Total Confirmados", "Média Engajamento (%)", "Taxa de Conversão (%)", "ROI Global", "Checkpoint", "Meta Checkpoint", "Realizado"]},
+    {nome: "Dashboard", colunas: ["Dashboard Visual Avançado"]},
+    
+    // Acompanhamento e Implementação
+    {nome: "Cronograma Semanal", colunas: ["Semana", "Creator", "Atividades Críticas", "Responsável", "Status", "Observações", "Data Conclusão", "Prioridade"]}
+  ];
+
+  // Processamento em lotes para não sobrecarregar a execução
+  var batchSize = 5;
+  var batchCount = Math.ceil(guias.length / batchSize);
+  
+  for (var batch = 0; batch < batchCount; batch++) {
+    var startIdx = batch * batchSize;
+    var endIdx = Math.min(startIdx + batchSize, guias.length);
+    
+    for (var i = startIdx; i < endIdx; i++) {
+      var guia = guias[i];
+      var sheet = ss.getSheetByName(guia.nome) || ss.insertSheet(guia.nome);
+      sheet.clear();
+      
+      // Adiciona cabecalho e formata
+      sheet.appendRow(guia.colunas);
+      var headerRange = sheet.getRange(1, 1, 1, guia.colunas.length);
+      headerRange.setBackground("#4285F4");
+      headerRange.setFontColor("white");
+      headerRange.setFontWeight("bold");
+      
+      // Congela a primeira linha
+      sheet.setFrozenRows(1);
+      
+      // Ajusta largura das colunas automaticamente
+      sheet.autoResizeColumns(1, guia.colunas.length);
+      
+      // Aplica formatação específica para cada guia
+      aplicarFormatacaoEspecifica(sheet, guia.nome);
+    }
+    
+    // Pausa entre lotes para não sobrecarregar
+    Utilities.sleep(500);
+  }
+  
+  // Aplica regras de validação
+  aplicarRegraValidacao();
+  
+  // Inicializa páginas especiais
+  inicializarPaginaInstrucoes();
+  inicializarSumarioExecutivo();
+  inicializarPlaybookEngajamento();
+  inicializarAnaliseInteresses();
+  
+  // Configura o dashboard
+  configurarDashboard();
+
+  // Atualiza estatísticas
+  atualizarEstatisticas();
+
+  // Exibe mensagem de confirmação
+  SpreadsheetApp.getUi().alert("Planilha criada com sucesso!\n\nUtilize o menu 'Gestão de Creators' para acessar todas as funcionalidades.");
 }
 
 /**
@@ -402,13 +457,13 @@ function inicializarSumarioExecutivo() {
 }
 
 /**
- * Configura o dashboard com gráficos e métricas avançadas baseadas no ABM Template
+ * Configura o painel de controle com gráficos e métricas avançadas
  */
 function configurarDashboard() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var dashSheet = ss.getSheetByName("Dashboard");
+  var dashSheet = ss.getSheetByName("Painel de Controle");
   
-  // Limpa o dashboard existente
+  // Limpa o painel existente
   dashSheet.clear();
   
   // Configuração básica da planilha
@@ -420,7 +475,7 @@ function configurarDashboard() {
   
   // Adiciona título e subtítulo
   dashSheet.getRange("A1:E1").merge();
-  dashSheet.getRange("A1").setValue("DASHBOARD DE GESTÃO DE CREATORS");
+  dashSheet.getRange("A1").setValue("PAINEL DE CONTROLE - GESTÃO DE CREATORS");
   dashSheet.getRange("A1").setFontSize(16).setFontWeight("bold").setHorizontalAlignment("center");
   dashSheet.getRange("A1:E1").setBackground("#4285F4").setFontColor("white");
   
@@ -436,11 +491,11 @@ function configurarDashboard() {
   
   // ==== INDICADORES PRINCIPAIS ====
   dashSheet.getRange("A5:E5").merge();
-  dashSheet.getRange("A5").setValue("KPIs PRINCIPAIS");
+  dashSheet.getRange("A5").setValue("INDICADORES PRINCIPAIS");
   dashSheet.getRange("A5").setFontWeight("bold").setHorizontalAlignment("center");
   dashSheet.getRange("A5:E5").setBackground("#e3f2fd");
   
-  // Layout de 2x3 para KPIs
+  // Layout de 2x3 para Indicadores
   var kpiLayout = [
     ["Total de Creators", "Parcerias Ativas", "ROI Médio"],
     ["=COUNTA('Guia Principal'!B2:B)", "=COUNTIF('Guia Principal'!L2:L, \"Parceria Ativa\")", "=IFERROR(AVERAGEIF('Histórico de Campanhas'!F2:F, \"<>\", 'Histórico de Campanhas'!G2:G), 0)"]
@@ -801,237 +856,8 @@ function aplicarRegraValidacao() {
 }
 
 /**
- * Script para gerenciamento de creators
- * Funcionalidades: criação de planilha, automações, formatação, validações e relatórios
+ * FUNÇÕES DE MANIPULAÇÃO DE DADOS
  */
-
-// Constantes globais
-const STATUS_OPTIONS = [
-  "Não Contatado",
-  "Contatado", 
-  "Aguardando Resposta",
-  "Reunião Agendada",
-  "Confirmado",
-  "Não Interessado",
-  "Parceria Fechada",
-  "Parceria Ativa",
-  "Em Renovação",
-  "Encerrado"
-];
-
-const PRIORIDADE_OPTIONS = [
-  "Tier 1 (Alta)",
-  "Tier 2 (Média)", 
-  "Tier 3 (Baixa)",
-  "Backlog"
-];
-
-const ETAPAS_JORNADA = [
-  "Identificação do Problema",
-  "Exploração da Solução",
-  "Construção de Requisitos",
-  "Seleção",
-  "Compra/Conversão",
-  "Retenção",
-  "Advocacia"
-];
-
-const NIVEL_PERSONALIZACAO = [
-  "Básico",
-  "Intermediário",
-  "Avançado",
-  "Premium"
-];
-
-const SEGMENTO_OPTIONS = [
-  "Macro",
-  "Estratégico",
-  "Crescimento",
-  "Oportunidade"
-];
-
-const FORMATO_CONTEUDO = [
-  "Post Feed",
-  "Story",
-  "Reels/TikTok",
-  "Live",
-  "IGTV/YouTube",
-  "Podcast",
-  "Blog",
-  "Newsletter",
-  "Webinar",
-  "Evento Presencial"
-];
-
-const STATUS_CONTEUDO = [
-  "Planejado",
-  "Em Produção",
-  "Aprovado",
-  "Publicado",
-  "Em Análise",
-  "Concluído"
-];
-
-const STATUS_QUALIFICACAO = [
-  "Excelente (20-25)",
-  "Bom (15-19)",
-  "Regular (10-14)",
-  "Baixo Potencial (<10)"
-];
-
-const PLATAFORMAS = [
-  "Instagram",
-  "TikTok",
-  "YouTube",
-  "Twitter",
-  "LinkedIn",
-  "Twitch",
-  "Facebook",
-  "Pinterest",
-  "Podcast",
-  "Blog",
-  "Newsletter",
-  "Outra"
-];
-
-const CHECKPOINT_OPTIONS = [
-  "Q1 2023",
-  "Q2 2023",
-  "Q3 2023",
-  "Q4 2023",
-  "Q1 2024",
-  "Q2 2024",
-  "Q3 2024",
-  "Q4 2024"
-];
-
-/**
- * Função principal para criar/redefinir todas as planilhas
- */
-function criarPlanilhaCompleta() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-
-  var guias = [
-    // Página de Instruções e Apresentação
-    {nome: "Página de Instruções", colunas: ["Instruções de Uso da Planilha"]},
-    {nome: "Sumário Executivo", colunas: ["Resumo do Programa de Creators", "KPIs Principais", "Período Atual", "Status Geral"]},
-    {nome: "Jornada do Seguidor", colunas: ["Mapeamento da Jornada de Consumo"]},
-    
-    // Gestão de Creators (núcleo)
-    {nome: "Guia Principal", colunas: ["ID", "Nome", "Categoria", "Nicho Específico", "Plataforma Principal", "Seguidores", "Engajamento (%)", "Email", "WhatsApp", "Link Perfil", "Data Primeiro Contato", "Status Contato", "Próxima Ação", "Data Reunião", "Horário Reunião", "Responsável Interno", "Prioridade", "Etapa Jornada Compra", "Nível Personalização", "Notas"]},
-    {nome: "Calendário de Reuniões", colunas: ["Data", "Horário", "Nome Creator", "Plataforma (Zoom/Meet)", "Link da Reunião", "Status da Reunião"]},
-    {nome: "Histórico de Campanhas", colunas: ["ID Creator", "Nome Creator", "Data Campanha", "Tipo Campanha", "Resultado", "Métricas de Desempenho", "ROI Estimado", "Feedback Creator"]},
-    
-    // Análise e Qualificação (inspirado no ABM Template)
-    {nome: "Qualificação dos Creators", colunas: ["Nome Creator", "Potencial Alcance (1-5)", "Relevância para Audiência (1-5)", "Compatibilidade com Marca (1-5)", "Qualidade de Conteúdo (1-5)", "Engajamento da Audiência (1-5)", "Histórico de Conversão (1-5)", "Pontuação Total", "Status Qualificação", "Segmento", "Tier de Prioridade"]},
-    {nome: "ICP de Creators", colunas: ["Critério", "Perfil Ideal (ICP)", "Creator 1", "Creator 2", "Creator 3", "Creator 4", "Creator 5", "Creator 6", "Creator 7", "Creator 8"]},
-    {nome: "Perfil Detalhado do Creator", colunas: ["Nome Creator", "Papel Decisão", "Objetivos Pessoais", "Riscos ou Objeções", "Estilo de Comunicação", "Influenciadores", "Necessidades Específicas", "Histórico de Relacionamento"]},
-    {nome: "Análise de Interesses", colunas: ["Creators Envolvidos", "Interesses Compartilhados", "Pontos de Divergência", "Potencial Colaboração", "Ações Recomendadas"]},
-    
-    // Planejamento Estratégico
-    {nome: "Alinhamento Estratégico", colunas: ["Objetivo de Negócio", "Estratégia com Creators", "KPIs", "Métricas de Sucesso", "Tática", "Responsável", "Status"]},
-    {nome: "Alocação de Recursos", colunas: ["Categoria", "Orçamento Estimado", "Orçamento Realizado", "Variação", "Observações"]},
-    {nome: "Playbook de Engajamento", colunas: ["Etapa Jornada", "Ações de Marketing", "Ações de Vendas", "Canais Específicos", "Responsável pela Ação"]},
-    
-    // Planejamento de Conteúdo
-    {nome: "Plano de Conteúdo", colunas: ["Tipo de Conteúdo", "Nível de Personalização", "Detalhes da Personalização", "Personalização por Segmento", "Personalização por Creator", "Recursos Necessários"]},
-    {nome: "Calendário Editorial", colunas: ["Semana", "Creator", "Tema", "Formato", "Plataforma", "Data Publicação", "Status", "Link do Conteúdo", "Métricas", "Observações"]},
-    {nome: "Modelo de Mensagens", colunas: ["Tipo Mensagem", "Texto Modelo", "Tempo Médio Resposta (dias)", "Tipo de Resposta", "Etapa da Prospecção", "Responsável", "Variantes para Testes"]},
-    
-    // Métricas e Análises
-    {nome: "Métricas de Desempenho", colunas: ["Categoria", "Tipo", "Métrica", "Checkpoint 1", "Checkpoint 2", "Checkpoint 3", "Checkpoint 4", "Checkpoint 5", "Meta", "Realizado", "Status"]},
-    {nome: "Estatísticas Gerais", colunas: ["Total Creators Captados", "Total Reuniões Agendadas", "Total Confirmados", "Média Engajamento (%)", "Taxa de Conversão (%)", "ROI Global", "Checkpoint", "Meta Checkpoint", "Realizado"]},
-    {nome: "Dashboard", colunas: ["Dashboard Visual Avançado"]},
-    
-    // Acompanhamento e Implementação
-    {nome: "Cronograma Semanal", colunas: ["Semana", "Creator", "Atividades Críticas", "Responsável", "Status", "Observações", "Data Conclusão", "Prioridade"]}
-  ];
-
-  // Processamento em lotes para não sobrecarregar a execução
-  var batchSize = 5;
-  var batchCount = Math.ceil(guias.length / batchSize);
-  
-  for (var batch = 0; batch < batchCount; batch++) {
-    var startIdx = batch * batchSize;
-    var endIdx = Math.min(startIdx + batchSize, guias.length);
-    
-    for (var i = startIdx; i < endIdx; i++) {
-      var guia = guias[i];
-      var sheet = ss.getSheetByName(guia.nome) || ss.insertSheet(guia.nome);
-      sheet.clear();
-      
-      // Adiciona cabecalho e formata
-      sheet.appendRow(guia.colunas);
-      var headerRange = sheet.getRange(1, 1, 1, guia.colunas.length);
-      headerRange.setBackground("#4285F4");
-      headerRange.setFontColor("white");
-      headerRange.setFontWeight("bold");
-      
-      // Congela a primeira linha
-      sheet.setFrozenRows(1);
-      
-      // Ajusta largura das colunas automaticamente
-      sheet.autoResizeColumns(1, guia.colunas.length);
-      
-      // Aplica formatação específica para cada guia
-      aplicarFormatacaoEspecifica(sheet, guia.nome);
-    }
-    
-    // Pausa entre lotes para não sobrecarregar
-    Utilities.sleep(500);
-  }
-  
-  // Aplica regras de validação
-  aplicarRegraValidacao();
-  
-  // Inicializa páginas especiais
-  inicializarPaginaInstrucoes();
-  inicializarSumarioExecutivo();
-  inicializarPlaybookEngajamento();
-  inicializarAnaliseInteresses();
-  
-  // Configura o dashboard
-  configurarDashboard();
-
-  // Atualiza estatísticas
-  atualizarEstatisticas();
-
-  // Exibe mensagem de confirmação
-  SpreadsheetApp.getUi().alert("Planilha criada com sucesso!\n\nUtilize o menu 'Gestão de Creators' para acessar todas as funcionalidades.");
-}
-
-/**
- * Atualiza estatísticas e métricas em todas as planilhas
- */
-function atualizarEstatisticas() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  
-  // Força atualização das estatísticas gerais
-  var statsSheet = ss.getSheetByName("Estatísticas Gerais");
-  if (statsSheet) {
-    // Recalcula as fórmulas forçando refresh
-    var totalCreators = statsSheet.getRange("B2").getValue();
-    statsSheet.getRange("B2").setValue(totalCreators);
-  }
-  
-  // Atualiza o dashboard
-  var dashSheet = ss.getSheetByName("Dashboard");
-  if (dashSheet) {
-    // Força recálculo das fórmulas
-    var metricas = dashSheet.getRange("A7:C7").getValues();
-    dashSheet.getRange("A7:C7").setValues(metricas);
-  }
-  
-  // Atualiza o sumário executivo
-  var sumarioSheet = ss.getSheetByName("Sumário Executivo");
-  if (sumarioSheet) {
-    var kpis = sumarioSheet.getRange("B12:D16").getValues();
-    sumarioSheet.getRange("B12:D16").setValues(kpis);
-  }
-  
-  // Exibe mensagem
-  SpreadsheetApp.getUi().alert("Estatísticas atualizadas com sucesso!");
-}
 
 /**
  * Manipula eventos de edição na planilha com tratamento de erros
@@ -1152,7 +978,7 @@ function onEdit(e) {
           
           // Define tier com base na pontuação
           if (!tierCell.getValue()) {
-            tierCell.setValue("Tier 1 (Alta)");
+            tierCell.setValue("Nível 1 (Alta)");
           }
           
           // Define segmento se estiver vazio
@@ -1165,7 +991,7 @@ function onEdit(e) {
           
           // Define tier com base na pontuação
           if (!tierCell.getValue()) {
-            tierCell.setValue("Tier 2 (Média)");
+            tierCell.setValue("Nível 2 (Média)");
           }
           
           // Define segmento se estiver vazio
@@ -1178,7 +1004,7 @@ function onEdit(e) {
           
           // Define tier com base na pontuação
           if (!tierCell.getValue()) {
-            tierCell.setValue("Tier 3 (Baixa)");
+            tierCell.setValue("Nível 3 (Baixa)");
           }
           
           // Define segmento se estiver vazio
@@ -1191,7 +1017,7 @@ function onEdit(e) {
           
           // Define tier com base na pontuação
           if (!tierCell.getValue()) {
-            tierCell.setValue("Backlog");
+            tierCell.setValue("Lista de Espera");
           }
         }
       }
@@ -1246,371 +1072,103 @@ function onEdit(e) {
 }
 
 /**
- * Aplicar formatação específica para cada guia
+ * Atualiza estatísticas e métricas em todas as planilhas
  */
-function aplicarFormatacaoEspecifica(sheet, nomeDaGuia) {
+function atualizarEstatisticas() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  
+  // Força atualização das estatísticas gerais
+  var statsSheet = ss.getSheetByName("Estatísticas Gerais");
+  if (statsSheet) {
+    // Recalcula as fórmulas forçando refresh
+    var totalCreators = statsSheet.getRange("B2").getValue();
+    statsSheet.getRange("B2").setValue(totalCreators);
+  }
+  
+  // Atualiza o painel de controle
+  var dashSheet = ss.getSheetByName("Painel de Controle");
+  if (dashSheet) {
+    // Força recálculo das fórmulas
+    var metricas = dashSheet.getRange("A7:C7").getValues();
+    dashSheet.getRange("A7:C7").setValues(metricas);
+  }
+  
+  // Atualiza o sumário executivo
+  var sumarioSheet = ss.getSheetByName("Sumário Executivo");
+  if (sumarioSheet) {
+    var kpis = sumarioSheet.getRange("B12:D16").getValues();
+    sumarioSheet.getRange("B12:D16").setValues(kpis);
+  }
+  
+  // Exibe mensagem
+  SpreadsheetApp.getUi().alert("Estatísticas atualizadas com sucesso!");
+}
+
+/**
+ * FUNÇÕES DE EXPORTAÇÃO E RELATÓRIOS
+ */
+
+/**
+ * Exporta o calendário de reuniões para o Google Calendar
+ * Requer autorização adicional para o Google Calendar
+ */
+function exportarCalendario() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var calSheet = ss.getSheetByName("Calendário de Reuniões");
+  
+  if(!calSheet) {
+    SpreadsheetApp.getUi().alert("Guia de Calendário não encontrada!");
+    return;
+  }
+  
+  var data = calSheet.getDataRange().getValues();
+  var ui = SpreadsheetApp.getUi();
+  
   try {
-    // Garante que a planilha tenha pelo menos uma linha de dados
-    if (sheet.getLastRow() === 0) {
-      sheet.appendRow([""]);
-    }
+    var calendar = CalendarApp.getDefaultCalendar();
+    var contador = 0;
     
-    // Formatação padrão para todas as guias
-    var lastCol = sheet.getLastColumn();
-    var lastRow = sheet.getLastRow();
-    if (lastCol > 0 && lastRow > 0) {
-      sheet.getRange(1, 1, lastRow, lastCol).setBackground("#ffffff");
-    }
-    
-    if(nomeDaGuia == "Dashboard"){
-      if (lastCol > 0 && lastRow > 0) {
-        sheet.getRange(1, 1, lastRow, lastCol).setBackground("#f5f5f5");
-      }
-      sheet.getRange(1, 1).setValue("Dashboard Interativo - Gestão de Creators");
-      sheet.getRange(1, 1).setFontSize(16);
-    }
-    
-    if(nomeDaGuia == "Estatísticas Gerais"){
-      // Adiciona fórmulas para cálculos automáticos
-      var mainSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Guia Principal");
+    // Começa da linha 1 (pula o cabeçalho)
+    for(var i = 1; i < data.length; i++) {
+      var dataReuniao = data[i][0]; // Data
+      var horario = data[i][1]; // Horário
+      var creator = data[i][2]; // Nome Creator
+      var plataforma = data[i][3]; // Plataforma
+      var link = data[i][4]; // Link
       
-      sheet.getRange("A2").setValue("Total Creators Captados");
-      sheet.getRange("B2").setFormula('=COUNTA(\'Guia Principal\'!B2:B)');
-      
-      sheet.getRange("A3").setValue("Total Reuniões Agendadas");
-      sheet.getRange("B3").setFormula('=COUNTIF(\'Guia Principal\'!L2:L, "Reunião Agendada")');
-      
-      sheet.getRange("A4").setValue("Total Confirmados");
-      sheet.getRange("B4").setFormula('=COUNTIF(\'Guia Principal\'!L2:L, "Confirmado")');
-      
-      sheet.getRange("A5").setValue("Média Engajamento (%)");
-      sheet.getRange("B5").setFormula('=AVERAGE(\'Guia Principal\'!G2:G)');
-      sheet.getRange("B5").setNumberFormat("0.00%");
-      
-      sheet.getRange("A6").setValue("Taxa de Conversão (%)");
-      sheet.getRange("B6").setFormula('=COUNTIF(\'Guia Principal\'!L2:L, "Parceria Fechada")/COUNTA(\'Guia Principal\'!B2:B)');
-      sheet.getRange("B6").setNumberFormat("0.00%");
-      
-      sheet.getRange("A8").setValue("Creators por Plataforma");
-      
-      // Tabela de creators por plataforma
-      sheet.getRange("A9").setValue("Plataforma");
-      sheet.getRange("B9").setValue("Quantidade");
-      
-      // Preenche plataformas
-      var row = 10;
-      for (var i = 0; i < PLATAFORMAS.length; i++) {
-        sheet.getRange(row, 1).setValue(PLATAFORMAS[i]);
-        sheet.getRange(row, 2).setFormula('=COUNTIF(\'Guia Principal\'!E2:E, "' + PLATAFORMAS[i] + '")');
-        row++;
-      }
-      
-      // Adiciona cabeçalhos para estatísticas por período
-      sheet.getRange("D2").setValue("ANÁLISE POR PERÍODO");
-      sheet.getRange("D2").setFontWeight("bold").setBackground("#e3f2fd");
-      
-      sheet.getRange("D3").setValue("Período");
-      sheet.getRange("E3").setValue("Novos Creators");
-      sheet.getRange("F3").setValue("Conversões");
-      sheet.getRange("G3").setValue("Taxa de Conversão");
-      
-      // Formata cabeçalhos
-      sheet.getRange("D3:G3").setBackground("#f5f5f5").setFontWeight("bold");
-      
-      // Preenche períodos (últimos 3 meses)
-      var today = new Date();
-      for (var i = 0; i < 3; i++) {
-        var monthDate = new Date(today.getFullYear(), today.getMonth() - i, 1);
-        var monthName = Utilities.formatDate(monthDate, "GMT-3", "MMM yyyy");
-        var startOfMonth = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1);
-        var endOfMonth = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0);
-        
-        sheet.getRange(4 + i, 4).setValue(monthName);
-        
-        // Novos creators no mês
-        sheet.getRange(4 + i, 5).setFormula('=COUNTIFS(\'Guia Principal\'!K2:K, ">=" & DATE(' + 
-                                             monthDate.getFullYear() + ',' + (monthDate.getMonth() + 1) + ',1), \'Guia Principal\'!K2:K, "<=" & DATE(' + 
-                                             monthDate.getFullYear() + ',' + (monthDate.getMonth() + 1) + ',' + endOfMonth.getDate() + '))');
-        
-        // Conversões no mês
-        sheet.getRange(4 + i, 6).setFormula('=COUNTIFS(\'Guia Principal\'!L2:L, "Parceria Fechada", \'Guia Principal\'!K2:K, ">=" & DATE(' + 
-                                             monthDate.getFullYear() + ',' + (monthDate.getMonth() + 1) + ',1), \'Guia Principal\'!K2:K, "<=" & DATE(' + 
-                                             monthDate.getFullYear() + ',' + (monthDate.getMonth() + 1) + ',' + endOfMonth.getDate() + '))');
-        
-        // Taxa de conversão
-        sheet.getRange(4 + i, 7).setFormula('=IF(E' + (4 + i) + '>0, F' + (4 + i) + '/E' + (4 + i) + ', 0)');
-        sheet.getRange(4 + i, 7).setNumberFormat("0.00%");
+      // Verifica se tem data e hora válidas
+      if(dataReuniao && horario) {
+        // Cria uma data completa concatenando data e hora
+        var dataCompleta = new Date(dataReuniao);
+        var horaParts = horario.split(":");
+        if(horaParts.length >= 2) {
+          dataCompleta.setHours(parseInt(horaParts[0]), parseInt(horaParts[1]));
+          
+          // Cria evento de 1 hora
+          var endTime = new Date(dataCompleta.getTime() + 60 * 60 * 1000);
+          
+          // Descrição do evento
+          var desc = "Reunião com creator: " + creator;
+          if(plataforma) desc += "\nPlataforma: " + plataforma;
+          if(link) desc += "\nLink: " + link;
+          
+          // Cria o evento
+          calendar.createEvent(
+            "Reunião: " + creator,
+            dataCompleta,
+            endTime,
+            {description: desc}
+          );
+          
+          contador++;
+        }
       }
     }
     
-    // Ajusta largura das colunas automaticamente
-    sheet.autoResizeColumns(1, sheet.getLastColumn());
-    
-  } catch (error) {
-    Logger.log("Erro ao aplicar formatação específica para " + nomeDaGuia + ": " + error.toString());
+    ui.alert("Calendário exportado com sucesso! " + contador + " eventos criados.");
+  } catch(e) {
+    ui.alert("Erro ao exportar para o calendário: " + e.toString());
   }
-}
-
-/**
- * Inicializa a guia de Análise de Interesses com caminhos de engajamento por segmento
- */
-function inicializarAnaliseInteresses() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName("Análise de Interesses");
-  
-  if (!sheet) {
-    return;
-  }
-  
-  sheet.clear();
-  
-  // Configuração básica da planilha
-  sheet.setColumnWidth(1, 30);  // Segmento
-  sheet.setColumnWidth(2, 200); // Creators Recomendados
-  sheet.setColumnWidth(3, 200); // Sequência de Conteúdo
-  sheet.setColumnWidth(4, 200); // Pontos de Contato
-  sheet.setColumnWidth(5, 200); // Gatilhos de Avanço
-  sheet.setColumnWidth(6, 200); // Métricas de Sucesso
-  
-  // Título principal
-  sheet.getRange("A1:F1").merge();
-  sheet.getRange("A1").setValue("CAMINHOS DE ENGAJAMENTO POR SEGMENTO");
-  sheet.getRange("A1").setFontSize(16).setFontWeight("bold").setHorizontalAlignment("center");
-  sheet.getRange("A1:F1").setBackground("#4285F4").setFontColor("white");
-  
-  // Subtítulo
-  sheet.getRange("A2:F2").merge();
-  sheet.getRange("A2").setValue("Mapeamento de Jornadas Personalizadas por Perfil de Audiência");
-  sheet.getRange("A2").setHorizontalAlignment("center").setFontStyle("italic");
-  
-  // Cabeçalhos das colunas
-  var headers = [
-    "Segmento",
-    "Creators Recomendados",
-    "Sequência de Conteúdo",
-    "Pontos de Contato",
-    "Gatilhos de Avanço",
-    "Métricas de Sucesso"
-  ];
-  
-  sheet.getRange(4, 1, 1, headers.length).setValues([headers]);
-  sheet.getRange(4, 1, 1, headers.length).setBackground("#e3f2fd").setFontWeight("bold");
-  
-  // Dados dos segmentos
-  var segmentos = [
-    // Iniciantes
-    [
-      "Iniciantes",
-      "• Creators educacionais\n• Micro-influencers\n• Tutores especializados\n• Mentores da área",
-      "1. Conteúdo introdutório\n2. Tutoriais básicos\n3. Dicas práticas\n4. Casos de sucesso simples\n5. Guias passo a passo",
-      "• Instagram Stories\n• Posts informativos\n• Lives semanais\n• Grupos de WhatsApp\n• Newsletters básicas",
-      "• Primeira interação com conteúdo\n• Compartilhamento de dúvidas\n• Participação em lives\n• Salvamento de posts\n• Inscrição em newsletter",
-      "• Taxa de engajamento inicial\n• Tempo médio de visualização\n• Taxa de salvamento\n• Número de dúvidas\n• Taxa de inscrição"
-    ],
-    
-    // Entusiastas
-    [
-      "Entusiastas",
-      "• Creators intermediários\n• Especialistas da área\n• Comunidades ativas\n• Referências do setor",
-      "1. Conteúdo avançado\n2. Análises técnicas\n3. Tendências do mercado\n4. Casos de sucesso complexos\n5. Workshops especializados",
-      "• Lives técnicas\n• Webinars\n• Grupos VIP\n• Eventos presenciais\n• Mentoria em grupo",
-      "• Participação em workshops\n• Compartilhamento de experiências\n• Criação de conteúdo\n• Interação em grupos VIP\n• Participação em eventos",
-      "• Taxa de participação em eventos\n• Qualidade das interações\n• Número de compartilhamentos\n• Engajamento em grupos\n• Taxa de conversão para VIP"
-    ],
-    
-    // Profissionais
-    [
-      "Profissionais",
-      "• Creators premium\n• Líderes de mercado\n• Especialistas renomados\n• Influenciadores estratégicos",
-      "1. Conteúdo estratégico\n2. Análises de mercado\n3. Tendências globais\n4. Casos de sucesso empresariais\n5. Consultorias especializadas",
-      "• Masterminds\n• Consultorias individuais\n• Eventos exclusivos\n• Redes de networking\n• Parcerias estratégicas",
-      "• Participação em masterminds\n• Implementação de estratégias\n• Geração de resultados\n• Networking ativo\n• Parcerias comerciais",
-      "• ROI das estratégias\n• Taxa de implementação\n• Resultados gerados\n• Expansão de rede\n• Valor das parcerias"
-    ]
-  ];
-  
-  // Inserir dados dos segmentos
-  sheet.getRange(5, 1, segmentos.length, segmentos[0].length).setValues(segmentos);
-  
-  // Formatação condicional para segmentos
-  var cores = ["#e3f2fd", "#f3e5f5", "#e8f5e9"];
-  for (var i = 0; i < segmentos.length; i++) {
-    sheet.getRange(5 + i, 1, 1, segmentos[0].length).setBackground(cores[i]);
-  }
-  
-  // Adicionar instruções
-  var lastRow = 5 + segmentos.length + 2;
-  sheet.getRange(lastRow, 1, 1, headers.length).merge();
-  sheet.getRange(lastRow, 1).setValue("Instruções: Use esta matriz para planejar e acompanhar os caminhos de engajamento específicos para cada segmento. Atualize as métricas regularmente para otimizar as estratégias.");
-  sheet.getRange(lastRow, 1).setFontStyle("italic").setBackground("#fff3e0");
-  
-  // Congelar cabeçalhos
-  sheet.setFrozenRows(4);
-  sheet.setFrozenColumns(1);
-}
-
-/**
- * Inicializa a guia Playbook de Engajamento com táticas e estratégias
- */
-function inicializarPlaybookEngajamento() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName("Playbook de Engajamento");
-  
-  if (!sheet) {
-    return;
-  }
-  
-  sheet.clear();
-  
-  // Configuração básica da planilha
-  sheet.setColumnWidth(1, 200);  // Tática
-  sheet.setColumnWidth(2, 150);  // Fase
-  sheet.setColumnWidth(3, 200);  // Creator Ideal
-  sheet.setColumnWidth(4, 150);  // Personalização
-  sheet.setColumnWidth(5, 200);  // Objetivo
-  sheet.setColumnWidth(6, 150);  // Métrica
-  sheet.setColumnWidth(7, 150);  // Orçamento
-  
-  // Título principal
-  sheet.getRange("A1:G1").merge();
-  sheet.getRange("A1").setValue("PLAYBOOK DE ENGAJAMENTO");
-  sheet.getRange("A1").setFontSize(16).setFontWeight("bold").setHorizontalAlignment("center");
-  sheet.getRange("A1:G1").setBackground("#4285F4").setFontColor("white");
-  
-  // Subtítulo
-  sheet.getRange("A2:G2").merge();
-  sheet.getRange("A2").setValue("Estratégias e Táticas para Cada Fase da Jornada do Cliente");
-  sheet.getRange("A2").setHorizontalAlignment("center").setFontStyle("italic");
-  
-  // Cabeçalhos das colunas
-  var headers = [
-    "Tática",
-    "Fase",
-    "Creator Ideal",
-    "Personalização",
-    "Objetivo",
-    "Métrica",
-    "Orçamento"
-  ];
-  
-  sheet.getRange(4, 1, 1, headers.length).setValues([headers]);
-  sheet.getRange(4, 1, 1, headers.length).setBackground("#e3f2fd").setFontWeight("bold");
-  
-  // Dados das táticas
-  var taticas = [
-    // Identificação do Problema
-    [
-      "Anúncios de display para exploração inicial do problema",
-      "Identificação do Problema",
-      "• Creators especializados em educação\n• Micro-influencers do setor\n• Especialistas em conteúdo técnico",
-      "Baixa",
-      "Aumentar awareness sobre desafios comuns do setor",
-      "• CTR dos anúncios\n• Taxa de engajamento\n• Tempo médio de visualização",
-      "R$ 5.000 - R$ 10.000"
-    ],
-    [
-      "Direct mail com casos de uso semelhantes",
-      "Identificação do Problema",
-      "• Creators com experiência em storytelling\n• Especialistas em casos de sucesso\n• Influenciadores do setor",
-      "Média",
-      "Demonstrar relevância através de exemplos práticos",
-      "• Taxa de abertura\n• Taxa de resposta\n• Número de agendamentos",
-      "R$ 3.000 - R$ 7.000"
-    ],
-    
-    // Exploração da Solução
-    [
-      "Posts em redes sociais com benchmarks do setor",
-      "Exploração da Solução",
-      "• Creators de dados e analytics\n• Especialistas em mercado\n• Influenciadores de tendências",
-      "Média",
-      "Educar sobre padrões e melhores práticas do setor",
-      "• Engajamento por post\n• Taxa de compartilhamento\n• Comentários qualificados",
-      "R$ 2.000 - R$ 5.000"
-    ],
-    [
-      "Webinars para demonstração de solução",
-      "Exploração da Solução",
-      "• Especialistas técnicos\n• Creators de conteúdo educacional\n• Influenciadores do setor",
-      "Alta",
-      "Apresentar soluções de forma interativa",
-      "• Número de inscritos\n• Taxa de participação\n• NPS do webinar",
-      "R$ 8.000 - R$ 15.000"
-    ],
-    
-    // Construção de Requisitos
-    [
-      "Eventos de networking para decisores",
-      "Construção de Requisitos",
-      "• Creators de networking\n• Líderes de mercado\n• Especialistas em relacionamento",
-      "Alta",
-      "Facilitar conexões e alinhamento de requisitos",
-      "• Número de participantes\n• Qualidade das interações\n• Leads gerados",
-      "R$ 10.000 - R$ 20.000"
-    ],
-    [
-      "Conteúdo segmentado para diferentes stakeholders",
-      "Construção de Requisitos",
-      "• Creators especializados em B2B\n• Especialistas em comunicação\n• Influenciadores setoriais",
-      "Alta",
-      "Endereçar necessidades específicas de cada stakeholder",
-      "• Engajamento por segmento\n• Taxa de conversão\n• Feedback qualitativo",
-      "R$ 5.000 - R$ 12.000"
-    ],
-    
-    // Seleção
-    [
-      "Mensagens personalizadas em LinkedIn",
-      "Seleção",
-      "• Creators de LinkedIn\n• Especialistas em vendas\n• Influenciadores B2B",
-      "Alta",
-      "Gerar conversas qualificadas com decisores",
-      "• Taxa de resposta\n• Taxa de agendamento\n• Qualidade dos leads",
-      "R$ 3.000 - R$ 8.000"
-    ]
-  ];
-  
-  // Inserir dados das táticas
-  sheet.getRange(5, 1, taticas.length, taticas[0].length).setValues(taticas);
-  
-  // Formatação condicional para níveis de personalização
-  var personalizacaoRange = sheet.getRange("D5:D" + (5 + taticas.length - 1));
-  var rule1 = SpreadsheetApp.newConditionalFormatRule()
-    .whenTextEqualTo("Baixa")
-    .setBackground("#c8e6c9")
-    .build();
-  var rule2 = SpreadsheetApp.newConditionalFormatRule()
-    .whenTextEqualTo("Média")
-    .setBackground("#fff9c4")
-    .build();
-  var rule3 = SpreadsheetApp.newConditionalFormatRule()
-    .whenTextEqualTo("Alta")
-    .setBackground("#ffcdd2")
-    .build();
-  personalizacaoRange.setConditionalFormatRules([rule1, rule2, rule3]);
-  
-  // Formatação condicional para fases
-  var faseRange = sheet.getRange("B5:B" + (5 + taticas.length - 1));
-  var cores = ["#e3f2fd", "#f3e5f5", "#e8f5e9", "#fff3e0"];
-  var fases = ["Identificação do Problema", "Exploração da Solução", "Construção de Requisitos", "Seleção"];
-  
-  for (var i = 0; i < fases.length; i++) {
-    var rule = SpreadsheetApp.newConditionalFormatRule()
-      .whenTextEqualTo(fases[i])
-      .setBackground(cores[i])
-      .build();
-    faseRange.setConditionalFormatRules([rule]);
-  }
-  
-  // Adicionar instruções
-  var lastRow = 5 + taticas.length + 2;
-  sheet.getRange(lastRow, 1, 1, headers.length).merge();
-  sheet.getRange(lastRow, 1).setValue("Instruções: Use este playbook para planejar e executar estratégias de engajamento em cada fase da jornada. Considere o nível de personalização necessário e selecione os creators mais adequados para cada tática.");
-  sheet.getRange(lastRow, 1).setFontStyle("italic").setBackground("#fff3e0");
-  
-  // Congelar cabeçalhos
-  sheet.setFrozenRows(4);
-  sheet.setFrozenColumns(1);
 }
 
 /**
@@ -1699,7 +1257,7 @@ function gerarRelatorio() {
   reportSheet.getRange(nextRow, 1, 1, 7).setBackground("#e3f2fd");
   
   // Tabela de tiers
-  var tiers = ["Tier 1 (Alta)", "Tier 2 (Média)", "Tier 3 (Baixa)", "Backlog"];
+  var tiers = ["Nível 1 (Alta)", "Nível 2 (Média)", "Nível 3 (Baixa)", "Lista de Espera"];
   reportSheet.getRange(nextRow + 1, 1).setValue("Tier");
   reportSheet.getRange(nextRow + 1, 2).setValue("Quantidade");
   reportSheet.getRange(nextRow + 1, 3).setValue("Taxa de Conversão");
@@ -1789,6 +1347,115 @@ function gerarRelatorio() {
   SpreadsheetApp.getUi().alert("Relatório gerado com sucesso!");
 }
 
+/**
+ * FUNÇÕES UTILITÁRIAS
+ */
+
+/**
+ * Funções auxiliares para o relatório
+ */
+function getWeekNumber(d) {
+  d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay()||7));
+  var yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+  var weekNo = Math.ceil(( ( (d - yearStart) / 86400000) + 1)/7);
+  return weekNo;
+}
+
+function getTopPlataforma(sheet) {
+  var data = sheet.getDataRange().getValues();
+  var plataformas = {};
+  
+  // Coluna 4 é a plataforma principal
+  for (var i = 1; i < data.length; i++) {
+    var plataforma = data[i][4]; // Coluna E (índice 4)
+    if (plataforma) {
+      if (!plataformas[plataforma]) {
+        plataformas[plataforma] = 0;
+      }
+      plataformas[plataforma]++;
+    }
+  }
+  
+  var topPlataforma = "";
+  var maxCount = 0;
+  
+  for (var plat in plataformas) {
+    if (plataformas[plat] > maxCount) {
+      maxCount = plataformas[plat];
+      topPlataforma = plat;
+    }
+  }
+  
+  return topPlataforma;
+}
+
+function getTopQualificacao(ss) {
+  var qualSheet = ss.getSheetByName("Qualificação dos Creators");
+  if (!qualSheet) return "N/A";
+  
+  var data = qualSheet.getDataRange().getValues();
+  var excelentes = 0;
+  var total = 0;
+  
+  // Coluna 7 é a pontuação total, 8 é o status
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][0]) { // Se tem um nome
+      total++;
+      if (data[i][8] == "Excelente" || data[i][8] == "Excelente (20-25)") {
+        excelentes++;
+      }
+    }
+  }
+  
+  if (total === 0) return "0%";
+  return Math.round(excelentes / total * 100) + "%";
+}
+
+function getTaxaConversao(sheet) {
+  var data = sheet.getDataRange().getValues();
+  var contatados = 0;
+  var parcerias = 0;
+  
+  // Coluna 11 é o status
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][11] && data[i][11] != "Não Contatado") { // Se foi contatado
+      contatados++;
+      if (data[i][11] == "Parceria Fechada" || data[i][11] == "Parceria Ativa") {
+        parcerias++;
+      }
+    }
+  }
+  
+  if (contatados === 0) return "0%";
+  return Math.round(parcerias / contatados * 100) + "%";
+}
+
+function getMediaEngajamento(sheet) {
+  var data = sheet.getDataRange().getValues();
+  var engajamentos = [];
+  
+  // Coluna 6 é o engajamento, coluna 11 é o status
+  for (var i = 1; i < data.length; i++) {
+    if ((data[i][11] == "Parceria Fechada" || data[i][11] == "Parceria Ativa") && data[i][6]) {
+      engajamentos.push(data[i][6]);
+    }
+  }
+  
+  if (engajamentos.length === 0) return "0";
+  
+  var soma = 0;
+  for (var i = 0; i < engajamentos.length; i++) {
+    soma += engajamentos[i];
+  }
+  
+  return (soma / engajamentos.length * 100).toFixed(2);
+}
+
+/**
+ * FUNÇÕES DE EXEMPLO E DEMONSTRAÇÃO
+ */
+
 function criarCreatorExemplo() {
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -1814,10 +1481,10 @@ function criarCreatorExemplo() {
       new Date(new Date().setDate(new Date().getDate() + 5)), // Data Reunião
       "14:00", // Horário Reunião
       "João Silva", // Responsável Interno
-      "Tier 1 (Alta)", // Prioridade
+      "Nível 1 (Alta)", // Prioridade
       "Qualificação", // Etapa Jornada Compra
       "Avançado", // Nível Personalização
-      "Creator especializado em reviews de produtos tecnológicos" // Notas
+      "Creator especializado em reviews de produtos tecnológicos" // Observações
     ];
     
     mainSheet.getRange(mainNextRow, 1, 1, mainData.length).setValues([mainData]);
@@ -1837,7 +1504,7 @@ function criarCreatorExemplo() {
       "=SUM(B" + qualNextRow + ":G" + qualNextRow + ")", // Pontuação Total
       "=IF(H" + qualNextRow + ">=20, \"Excelente (20-25)\", IF(H" + qualNextRow + ">=15, \"Bom (15-19)\", IF(H" + qualNextRow + ">=10, \"Regular (10-14)\", \"Baixo Potencial (<10)\")))", // Status Qualificação
       "Estratégico", // Segmento
-      "Tier 1 (Alta)" // Tier de Prioridade
+      "Nível 1 (Alta)" // Nível de Prioridade
     ];
     
     qualSheet.getRange(qualNextRow, 1, 1, qualData.length).setValues([qualData]);
@@ -1848,7 +1515,7 @@ function criarCreatorExemplo() {
     
     var perfilData = [
       "TechReview Pro", // Nome Creator
-      "Decisor", // Papel Decisão
+      "Decisor", // Papel na Decisão
       "Crescimento do canal e parcerias com marcas", // Objetivos Pessoais
       "Precisa de liberdade criativa e tempo para produção", // Riscos ou Objeções
       "Profissional e técnico", // Estilo de Comunicação
@@ -1869,7 +1536,7 @@ function criarCreatorExemplo() {
       new Date(), // Data Campanha
       "Review de Produto", // Tipo Campanha
       "Em Andamento", // Resultado
-      "150k views, 12k likes", // Métricas de Desempenho
+      "150k visualizações, 12k curtidas", // Métricas de Desempenho
       0.85, // ROI Estimado
       "Positivo, gostou da liberdade criativa" // Feedback Creator
     ];
@@ -1890,7 +1557,7 @@ function criarCreatorExemplo() {
       "Em Produção", // Status
       "", // Link do Conteúdo
       "", // Métricas
-      "Incluir unboxing e testes de performance" // Observações
+      "Incluir unboxing e testes de desempenho" // Observações
     ];
     
     calSheet.getRange(calNextRow, 1, 1, calData.length).setValues([calData]);
@@ -1905,3 +1572,1111 @@ function criarCreatorExemplo() {
     SpreadsheetApp.getUi().alert("Erro ao criar creator exemplo: " + error.toString());
   }
 }
+
+/**
+ * Gera relatório detalhado de desempenho dos creators
+ */
+function gerarRelatorioDesempenho() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ui = SpreadsheetApp.getUi();
+  
+  try {
+    // Cria nova aba para o relatório se não existir
+    var reportSheet = ss.getSheetByName("Relatório de Desempenho");
+    if (!reportSheet) {
+      reportSheet = ss.insertSheet("Relatório de Desempenho");
+    } else {
+      reportSheet.clear();
+    }
+    
+    // Configura cabeçalho do relatório
+    reportSheet.getRange("A1:F1").setValues([["Relatório de Desempenho dos Creators", "", "", "", "", ""]]);
+    reportSheet.getRange("A1:F1").merge();
+    reportSheet.getRange("A2:F2").setValues([["Data do Relatório: " + new Date().toLocaleDateString(), "", "", "", "", ""]]);
+    reportSheet.getRange("A2:F2").merge();
+    
+    // Adiciona seções do relatório
+    reportSheet.getRange("A4:F4").setValues([["Métricas Gerais de Desempenho", "", "", "", "", ""]]);
+    reportSheet.getRange("A5:B5").setValues([["Total de Creators Ativos", "=COUNTIF('Guia Principal'!L:L, \"Confirmado\")"]]);
+    reportSheet.getRange("A6:B6").setValues([["Média de Engajamento", "=AVERAGE('Guia Principal'!G:G)"]]);
+    reportSheet.getRange("A7:B7").setValues([["Total de Seguidores", "=SUM('Guia Principal'!F:F)"]]);
+    
+    // Análise por Nível de Prioridade
+    reportSheet.getRange("A9:F9").setValues([["Distribuição por Nível de Prioridade", "", "", "", "", ""]]);
+    reportSheet.getRange("A10:B10").setValues([["Nível 1 (Alta)", "=COUNTIF('Guia Principal'!Q:Q, \"Nível 1 (Alta)\")"]]);
+    reportSheet.getRange("A11:B11").setValues([["Nível 2 (Média)", "=COUNTIF('Guia Principal'!Q:Q, \"Nível 2 (Média)\")"]]);
+    reportSheet.getRange("A12:B12").setValues([["Nível 3 (Baixa)", "=COUNTIF('Guia Principal'!Q:Q, \"Nível 3 (Baixa)\")"]]);
+    
+    // Análise por Plataforma
+    reportSheet.getRange("D10:E10").setValues([["Distribuição por Plataforma", ""]]);
+    reportSheet.getRange("D11:E11").setValues([["YouTube", "=COUNTIF('Guia Principal'!E:E, \"YouTube\")"]]);
+    reportSheet.getRange("D12:E12").setValues([["Instagram", "=COUNTIF('Guia Principal'!E:E, \"Instagram\")"]]);
+    reportSheet.getRange("D13:E13").setValues([["TikTok", "=COUNTIF('Guia Principal'!E:E, \"TikTok\")"]]);
+    
+    // Formata o relatório
+    reportSheet.getRange("A1:F1").setFontSize(14).setFontWeight("bold").setHorizontalAlignment("center");
+    reportSheet.getRange("A4:F4").setFontWeight("bold").setBackground("#f3f3f3");
+    reportSheet.getRange("A9:F9").setFontWeight("bold").setBackground("#f3f3f3");
+    reportSheet.getRange("A15:F15").setFontWeight("bold").setBackground("#f3f3f3");
+    
+    // Ajusta largura das colunas
+    reportSheet.setColumnWidth(1, 200);
+    reportSheet.setColumnWidth(2, 150);
+    reportSheet.setColumnWidth(3, 50);
+    reportSheet.setColumnWidth(4, 200);
+    reportSheet.setColumnWidth(5, 150);
+    
+    // Exibe mensagem de conclusão
+    ui.alert("Relatório de desempenho gerado com sucesso!");
+    
+  } catch(error) {
+    ui.alert("Erro ao gerar relatório: " + error.toString());
+  }
+}
+
+/**
+ * Gera análise de tendências e insights baseados nos dados históricos
+ */
+function gerarAnaliseInsights() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ui = SpreadsheetApp.getUi();
+  
+  try {
+    // Cria nova aba para análise se não existir
+    var insightSheet = ss.getSheetByName("Análise e Insights");
+    if (!insightSheet) {
+      insightSheet = ss.insertSheet("Análise e Insights");
+    } else {
+      insightSheet.clear();
+    }
+    
+    // Configura cabeçalho
+    insightSheet.getRange("A1:F1").setValues([["Análise de Tendências e Insights", "", "", "", "", ""]]);
+    insightSheet.getRange("A1:F1").merge();
+    insightSheet.getRange("A2:F2").setValues([["Atualizado em: " + new Date().toLocaleDateString(), "", "", "", "", ""]]);
+    insightSheet.getRange("A2:F2").merge();
+    
+    // Análise de Crescimento
+    insightSheet.getRange("A4:F4").setValues([["Análise de Crescimento", "", "", "", "", ""]]);
+    insightSheet.getRange("A5:B5").setValues([["Taxa de Crescimento Mensal", "=IFERROR((COUNTIF('Guia Principal'!L:L, \"Confirmado\") / LAG(COUNTIF('Guia Principal'!L:L, \"Confirmado\"), 1) - 1), \"N/A\")"]]);
+    
+    // Análise de Efetividade
+    insightSheet.getRange("A7:F7").setValues([["Análise de Efetividade", "", "", "", "", ""]]);
+    insightSheet.getRange("A8:B8").setValues([["Taxa de Conversão", "=COUNTIF('Guia Principal'!R:R, \"Fechamento\") / COUNTIF('Guia Principal'!L:L, \"Confirmado\")"]]);
+    insightSheet.getRange("A9:B9").setValues([["Média de Tempo até Fechamento", "=AVERAGE(DAYS('Guia Principal'!K:K, 'Guia Principal'!N:N))"]]);
+    
+    // Insights de Desempenho
+    insightSheet.getRange("A11:F11").setValues([["Insights de Desempenho", "", "", "", "", ""]]);
+    insightSheet.getRange("A12:B12").setValues([["Creators de Alto Desempenho", "=COUNTIFS('Qualificação dos Creators'!I:I, \"Excelente*\")"]]);
+    insightSheet.getRange("A13:B13").setValues([["Oportunidades de Melhoria", "=COUNTIFS('Qualificação dos Creators'!I:I, \"Regular*\", 'Qualificação dos Creators'!I:I, \"Baixo*\")"]]);
+    
+    // Recomendações Automáticas
+    insightSheet.getRange("A15:F15").setValues([["Recomendações", "", "", "", "", ""]]);
+    insightSheet.getRange("A16:F16").setValues([["Baseado nos dados analisados, recomenda-se:", "", "", "", "", ""]]);
+    insightSheet.getRange("A17:F17").setValues([["• Priorizar creators com alto potencial de conversão", "", "", "", "", ""]]);
+    insightSheet.getRange("A18:F18").setValues([["• Otimizar processo de qualificação", "", "", "", "", ""]]);
+    insightSheet.getRange("A19:F19").setValues([["• Focar em plataformas com melhor desempenho", "", "", "", "", ""]]);
+    
+    // Formata a planilha
+    insightSheet.getRange("A1:F1").setFontSize(14).setFontWeight("bold").setHorizontalAlignment("center");
+    insightSheet.getRange("A4:F4").setFontWeight("bold").setBackground("#f3f3f3");
+    insightSheet.getRange("A7:F7").setFontWeight("bold").setBackground("#f3f3f3");
+    insightSheet.getRange("A11:F11").setFontWeight("bold").setBackground("#f3f3f3");
+    insightSheet.getRange("A15:F15").setFontWeight("bold").setBackground("#f3f3f3");
+    
+    // Ajusta largura das colunas
+    insightSheet.setColumnWidth(1, 250);
+    insightSheet.setColumnWidth(2, 200);
+    insightSheet.setColumnWidth(3, 50);
+    insightSheet.setColumnWidth(4, 200);
+    insightSheet.setColumnWidth(5, 150);
+    
+    // Exibe mensagem de conclusão
+    ui.alert("Análise e insights gerados com sucesso!");
+    
+  } catch(error) {
+    ui.alert("Erro ao gerar análise: " + error.toString());
+  }
+}
+
+/**
+ * Aplica formatação específica para células baseado em regras de negócio
+ */
+function aplicarFormatacaoEspecifica() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ui = SpreadsheetApp.getUi();
+  
+  try {
+    // Formata Guia Principal
+    var mainSheet = ss.getSheetByName("Guia Principal");
+    if (mainSheet) {
+      // Verifica se há dados antes de aplicar formatação
+      var lastRow = mainSheet.getLastRow();
+      var lastCol = mainSheet.getLastColumn();
+      
+      if (lastRow > 1) { // Se houver dados além do cabeçalho
+        // Formata ID do Creator
+        var idRange = mainSheet.getRange(2, 1, lastRow-1, 1);
+        idRange.setFontFamily("Courier New")
+               .setHorizontalAlignment("left");
+        
+        // Formata colunas numéricas
+        var numericCols = [6, 7]; // Seguidores e Engajamento
+        numericCols.forEach(function(col) {
+          var range = mainSheet.getRange(2, col, lastRow-1, 1);
+          range.setNumberFormat("#,##0.00");
+        });
+        
+        // Formata datas
+        var dateCols = [11, 14]; // Data Primeiro Contato e Data Reunião
+        dateCols.forEach(function(col) {
+          var range = mainSheet.getRange(2, col, lastRow-1, 1);
+          range.setNumberFormat("dd/mm/yyyy");
+        });
+        
+        // Aplica cores condicionais para Status
+        var statusRange = mainSheet.getRange(2, 12, lastRow-1, 1); // Coluna Status Contato
+        var rule1 = SpreadsheetApp.newConditionalFormatRule()
+          .whenTextEqualTo("Confirmado")
+          .setBackground("#b7e1cd")
+          .setRanges([statusRange])
+          .build();
+        var rule2 = SpreadsheetApp.newConditionalFormatRule()
+          .whenTextEqualTo("Pendente")
+          .setBackground("#fce8b2")
+          .setRanges([statusRange])
+          .build();
+        var rule3 = SpreadsheetApp.newConditionalFormatRule()
+          .whenTextEqualTo("Cancelado")
+          .setBackground("#f4c7c3")
+          .setRanges([statusRange])
+          .build();
+        
+        mainSheet.setConditionalFormatRules([rule1, rule2, rule3]);
+      }
+    }
+    
+    // Formata Qualificação dos Creators
+    var qualSheet = ss.getSheetByName("Qualificação dos Creators");
+    if (qualSheet) {
+      var qualLastRow = qualSheet.getLastRow();
+      if (qualLastRow > 1) {
+        // Formata pontuações (1-5)
+        var scoreRange = qualSheet.getRange(2, 2, qualLastRow-1, 6); // Colunas B-G
+        scoreRange.setHorizontalAlignment("center");
+        
+        // Aplica cores condicionais para pontuação total
+        var totalScoreRange = qualSheet.getRange(2, 8, qualLastRow-1, 1); // Coluna H
+        var scoreRule1 = SpreadsheetApp.newConditionalFormatRule()
+          .whenNumberGreaterThanOrEqualTo(20)
+          .setBackground("#b7e1cd")
+          .setRanges([totalScoreRange])
+          .build();
+        var scoreRule2 = SpreadsheetApp.newConditionalFormatRule()
+          .whenNumberBetween(15, 19)
+          .setBackground("#b6d7a8")
+          .setRanges([totalScoreRange])
+          .build();
+        var scoreRule3 = SpreadsheetApp.newConditionalFormatRule()
+          .whenNumberBetween(10, 14)
+          .setBackground("#fce8b2")
+          .setRanges([totalScoreRange])
+          .build();
+        var scoreRule4 = SpreadsheetApp.newConditionalFormatRule()
+          .whenNumberLessThan(10)
+          .setBackground("#f4c7c3")
+          .setRanges([totalScoreRange])
+          .build();
+        
+        qualSheet.setConditionalFormatRules([scoreRule1, scoreRule2, scoreRule3, scoreRule4]);
+      }
+    }
+    
+    // Formata Calendário Editorial
+    var calSheet = ss.getSheetByName("Calendário Editorial");
+    if (calSheet) {
+      var calLastRow = calSheet.getLastRow();
+      if (calLastRow > 1) {
+        // Formata data de publicação
+        var pubDateRange = calSheet.getRange(2, 6, calLastRow-1, 1); // Coluna F
+        pubDateRange.setNumberFormat("dd/mm/yyyy");
+        
+        // Aplica cores condicionais para status
+        var calStatusRange = calSheet.getRange(2, 7, calLastRow-1, 1); // Coluna G
+        var calRule1 = SpreadsheetApp.newConditionalFormatRule()
+          .whenTextEqualTo("Publicado")
+          .setBackground("#b7e1cd")
+          .setRanges([calStatusRange])
+          .build();
+        var calRule2 = SpreadsheetApp.newConditionalFormatRule()
+          .whenTextEqualTo("Em Produção")
+          .setBackground("#fce8b2")
+          .setRanges([calStatusRange])
+          .build();
+        var calRule3 = SpreadsheetApp.newConditionalFormatRule()
+          .whenTextEqualTo("Atrasado")
+          .setBackground("#f4c7c3")
+          .setRanges([calStatusRange])
+          .build();
+        
+        calSheet.setConditionalFormatRules([calRule1, calRule2, calRule3]);
+      }
+    }
+    
+    ui.alert("Formatação aplicada com sucesso!");
+    
+  } catch(error) {
+    ui.alert("Erro ao aplicar formatação: " + error.toString());
+  }
+}
+
+/**
+ * Função utilitária para obter o número da semana
+ * @param {Date} date Data para calcular o número da semana
+ * @return {number} Número da semana no ano
+ */
+function getWeekNumber(date) {
+  var d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  var dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  var yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+  return Math.ceil((((d - yearStart) / 86400000) + 1)/7);
+}
+
+/**
+ * Função utilitária para validar endereço de email
+ * @param {string} email Endereço de email para validar
+ * @return {boolean} Verdadeiro se o email é válido
+ */
+function validarEmail(email) {
+  var regex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+  return regex.test(email);
+}
+
+/**
+ * Função utilitária para validar número de telefone
+ * @param {string} telefone Número de telefone para validar
+ * @return {boolean} Verdadeiro se o telefone é válido
+ */
+function validarTelefone(telefone) {
+  var regex = /^\+?[\d\s-()]{10,}$/;
+  return regex.test(telefone);
+}
+
+/**
+ * Função utilitária para formatar números grandes
+ * @param {number} numero Número para formatar
+ * @return {string} Número formatado com sufixo K ou M
+ */
+function formatarNumeroGrande(numero) {
+  if (numero >= 1000000) {
+    return (numero / 1000000).toFixed(1) + "M";
+  } else if (numero >= 1000) {
+    return (numero / 1000).toFixed(1) + "K";
+  }
+  return numero.toString();
+}
+
+/**
+ * Valida os dados de entrada de um novo creator
+ * @param {Object} dados Objeto com os dados do creator
+ * @return {Object} Objeto com resultado da validação e mensagens de erro
+ */
+function validarDadosCreator(dados) {
+  var erros = [];
+  
+  // Valida campos obrigatórios
+  if (!dados.nome) erros.push("Nome do creator é obrigatório");
+  if (!dados.categoria) erros.push("Categoria é obrigatória");
+  if (!dados.plataforma) erros.push("Plataforma principal é obrigatória");
+  if (!dados.seguidores) erros.push("Número de seguidores é obrigatório");
+  
+  // Valida formato dos dados
+  if (dados.email && !validarEmail(dados.email)) {
+    erros.push("Formato de email inválido");
+  }
+  
+  if (dados.telefone && !validarTelefone(dados.telefone)) {
+    erros.push("Formato de telefone inválido");
+  }
+  
+  if (dados.seguidores && isNaN(dados.seguidores)) {
+    erros.push("Número de seguidores deve ser um número");
+  }
+  
+  if (dados.engajamento && (isNaN(dados.engajamento) || dados.engajamento < 0 || dados.engajamento > 100)) {
+    erros.push("Taxa de engajamento deve ser um número entre 0 e 100");
+  }
+  
+  return {
+    valido: erros.length === 0,
+    erros: erros
+  };
+}
+
+/**
+ * Calcula métricas de desempenho para um creator
+ * @param {Object} dados Objeto com os dados do creator
+ * @return {Object} Objeto com as métricas calculadas
+ */
+function calcularMetricasDesempenho(dados) {
+  var metricas = {
+    pontuacaoTotal: 0,
+    classificacao: "",
+    potencialROI: 0
+  };
+  
+  // Calcula pontuação baseada em vários fatores
+  var pontuacaoSeguidores = calcularPontuacaoSeguidores(dados.seguidores);
+  var pontuacaoEngajamento = calcularPontuacaoEngajamento(dados.engajamento);
+  var pontuacaoConversao = dados.taxaConversao ? calcularPontuacaoConversao(dados.taxaConversao) : 0;
+  
+  metricas.pontuacaoTotal = pontuacaoSeguidores + pontuacaoEngajamento + pontuacaoConversao;
+  
+  // Define classificação baseada na pontuação total
+  if (metricas.pontuacaoTotal >= 20) {
+    metricas.classificacao = "Excelente (20-25)";
+  } else if (metricas.pontuacaoTotal >= 15) {
+    metricas.classificacao = "Bom (15-19)";
+  } else if (metricas.pontuacaoTotal >= 10) {
+    metricas.classificacao = "Regular (10-14)";
+  } else {
+    metricas.classificacao = "Baixo Potencial (<10)";
+  }
+  
+  // Calcula potencial ROI baseado nas métricas
+  metricas.potencialROI = calcularPotencialROI(dados);
+  
+  return metricas;
+}
+
+/**
+ * Calcula pontuação baseada no número de seguidores
+ * @param {number} seguidores Número de seguidores
+ * @return {number} Pontuação (1-5)
+ */
+function calcularPontuacaoSeguidores(seguidores) {
+  if (seguidores >= 1000000) return 5;
+  if (seguidores >= 500000) return 4;
+  if (seguidores >= 100000) return 3;
+  if (seguidores >= 50000) return 2;
+  return 1;
+}
+
+/**
+ * Calcula pontuação baseada na taxa de engajamento
+ * @param {number} engajamento Taxa de engajamento em porcentagem
+ * @return {number} Pontuação (1-5)
+ */
+function calcularPontuacaoEngajamento(engajamento) {
+  if (engajamento >= 10) return 5;
+  if (engajamento >= 7) return 4;
+  if (engajamento >= 5) return 3;
+  if (engajamento >= 3) return 2;
+  return 1;
+}
+
+/**
+ * Calcula pontuação baseada na taxa de conversão histórica
+ * @param {number} taxaConversao Taxa de conversão em porcentagem
+ * @return {number} Pontuação (1-5)
+ */
+function calcularPontuacaoConversao(taxaConversao) {
+  if (taxaConversao >= 5) return 5;
+  if (taxaConversao >= 3) return 4;
+  if (taxaConversao >= 2) return 3;
+  if (taxaConversao >= 1) return 2;
+  return 1;
+}
+
+/**
+ * Calcula potencial ROI baseado nos dados do creator
+ * @param {Object} dados Objeto com os dados do creator
+ * @return {number} Potencial ROI estimado
+ */
+function calcularPotencialROI(dados) {
+  var baseROI = 1.0;
+  
+  // Ajusta baseado no número de seguidores
+  if (dados.seguidores >= 1000000) baseROI *= 1.5;
+  else if (dados.seguidores >= 500000) baseROI *= 1.3;
+  else if (dados.seguidores >= 100000) baseROI *= 1.2;
+  
+  // Ajusta baseado no engajamento
+  if (dados.engajamento >= 10) baseROI *= 1.5;
+  else if (dados.engajamento >= 7) baseROI *= 1.3;
+  else if (dados.engajamento >= 5) baseROI *= 1.2;
+  
+  // Ajusta baseado na taxa de conversão histórica
+  if (dados.taxaConversao) {
+    if (dados.taxaConversao >= 5) baseROI *= 1.5;
+    else if (dados.taxaConversao >= 3) baseROI *= 1.3;
+    else if (dados.taxaConversao >= 2) baseROI *= 1.2;
+  }
+  
+  return baseROI;
+}
+
+/**
+ * Adiciona um novo creator à planilha principal
+ * @param {Object} dados Dados do creator para adicionar
+ */
+function adicionarCreator(dados) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ui = SpreadsheetApp.getUi();
+  
+  try {
+    // Valida os dados primeiro
+    var validacao = validarDadosCreator(dados);
+    if (!validacao.valido) {
+      ui.alert("Erro ao adicionar creator:\n\n" + validacao.erros.join("\n"));
+      return;
+    }
+    
+    // Gera ID único para o creator
+    var idCreator = "CR" + new Date().getTime().toString().slice(-6);
+    
+    // Adiciona à Guia Principal
+    var mainSheet = ss.getSheetByName("Guia Principal");
+    var nextRow = mainSheet.getLastRow() + 1;
+    
+    var rowData = [
+      idCreator,
+      dados.nome,
+      dados.categoria,
+      dados.nicho,
+      dados.plataforma,
+      dados.seguidores,
+      dados.engajamento,
+      dados.email,
+      dados.telefone,
+      dados.linkPerfil,
+      new Date(), // Data Primeiro Contato
+      "Pendente", // Status Contato
+      "Qualificar", // Próxima Ação
+      "", // Data Reunião
+      "", // Horário Reunião
+      Session.getActiveUser().getEmail(), // Responsável Interno
+      "Nível 3 (Baixa)", // Prioridade inicial
+      "Prospecção", // Etapa inicial
+      "Básico", // Nível Personalização inicial
+      dados.observacoes || "" // Observações
+    ];
+    
+    mainSheet.getRange(nextRow, 1, 1, rowData.length).setValues([rowData]);
+    
+    // Adiciona à Qualificação dos Creators
+    var qualSheet = ss.getSheetByName("Qualificação dos Creators");
+    var qualNextRow = qualSheet.getLastRow() + 1;
+    
+    // Calcula métricas iniciais
+    var metricas = calcularMetricasDesempenho(dados);
+    
+    var qualData = [
+      dados.nome,
+      0, // Potencial Alcance
+      0, // Relevância para Audiência
+      0, // Compatibilidade com Marca
+      0, // Qualidade de Conteúdo
+      0, // Engajamento da Audiência
+      0, // Histórico de Conversão
+      "=SUM(B" + qualNextRow + ":G" + qualNextRow + ")", // Pontuação Total
+      "=IF(H" + qualNextRow + ">=20, \"Excelente (20-25)\", IF(H" + qualNextRow + ">=15, \"Bom (15-19)\", IF(H" + qualNextRow + ">=10, \"Regular (10-14)\", \"Baixo Potencial (<10)\")))", // Status Qualificação
+      "A Definir", // Segmento
+      "Nível 3 (Baixa)" // Nível de Prioridade inicial
+    ];
+    
+    qualSheet.getRange(qualNextRow, 1, 1, qualData.length).setValues([qualData]);
+    
+    // Adiciona ao Perfil Detalhado
+    var perfilSheet = ss.getSheetByName("Perfil Detalhado do Creator");
+    var perfilNextRow = perfilSheet.getLastRow() + 1;
+    
+    var perfilData = [
+      dados.nome,
+      "", // Papel na Decisão
+      "", // Objetivos Pessoais
+      "", // Riscos ou Objeções
+      "", // Estilo de Comunicação
+      "", // Influenciadores
+      "", // Necessidades Específicas
+      "Primeiro contato pendente" // Histórico de Relacionamento
+    ];
+    
+    perfilSheet.getRange(perfilNextRow, 1, 1, perfilData.length).setValues([perfilData]);
+    
+    // Atualiza estatísticas
+    atualizarEstatisticas();
+    
+    ui.alert("Creator adicionado com sucesso!");
+    
+  } catch(error) {
+    ui.alert("Erro ao adicionar creator: " + error.toString());
+  }
+}
+
+/**
+ * Atualiza os dados de um creator existente
+ * @param {string} idCreator ID do creator para atualizar
+ * @param {Object} dados Novos dados do creator
+ */
+function atualizarCreator(idCreator, dados) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ui = SpreadsheetApp.getUi();
+  
+  try {
+    // Valida os dados primeiro
+    var validacao = validarDadosCreator(dados);
+    if (!validacao.valido) {
+      ui.alert("Erro ao atualizar creator:\n\n" + validacao.erros.join("\n"));
+      return;
+    }
+    
+    // Atualiza Guia Principal
+    var mainSheet = ss.getSheetByName("Guia Principal");
+    var mainData = mainSheet.getDataRange().getValues();
+    var mainRow = -1;
+    
+    // Encontra a linha do creator
+    for (var i = 0; i < mainData.length; i++) {
+      if (mainData[i][0] === idCreator) {
+        mainRow = i + 1;
+        break;
+      }
+    }
+    
+    if (mainRow === -1) {
+      ui.alert("Creator não encontrado!");
+      return;
+    }
+    
+    // Atualiza dados na Guia Principal
+    var updateData = [
+      idCreator,
+      dados.nome,
+      dados.categoria,
+      dados.nicho,
+      dados.plataforma,
+      dados.seguidores,
+      dados.engajamento,
+      dados.email,
+      dados.telefone,
+      dados.linkPerfil,
+      mainData[mainRow-1][10], // Mantém Data Primeiro Contato
+      dados.statusContato || mainData[mainRow-1][11],
+      dados.proximaAcao || mainData[mainRow-1][12],
+      dados.dataReuniao || mainData[mainRow-1][13],
+      dados.horarioReuniao || mainData[mainRow-1][14],
+      mainData[mainRow-1][15], // Mantém Responsável Interno
+      dados.prioridade || mainData[mainRow-1][16],
+      dados.etapa || mainData[mainRow-1][17],
+      dados.nivelPersonalizacao || mainData[mainRow-1][18],
+      dados.observacoes || mainData[mainRow-1][19]
+    ];
+    
+    mainSheet.getRange(mainRow, 1, 1, updateData.length).setValues([updateData]);
+    
+    // Atualiza outras abas relacionadas
+    atualizarQualificacaoCreator(dados.nome, dados);
+    atualizarPerfilCreator(dados.nome, dados);
+    
+    // Atualiza estatísticas
+    atualizarEstatisticas();
+    
+    ui.alert("Creator atualizado com sucesso!");
+    
+  } catch(error) {
+    ui.alert("Erro ao atualizar creator: " + error.toString());
+  }
+}
+
+/**
+ * Atualiza a qualificação de um creator
+ * @param {string} nomeCreator Nome do creator
+ * @param {Object} dados Dados atualizados
+ */
+function atualizarQualificacaoCreator(nomeCreator, dados) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var qualSheet = ss.getSheetByName("Qualificação dos Creators");
+  var qualData = qualSheet.getDataRange().getValues();
+  var qualRow = -1;
+  
+  // Encontra a linha do creator
+  for (var i = 0; i < qualData.length; i++) {
+    if (qualData[i][0] === nomeCreator) {
+      qualRow = i + 1;
+      break;
+    }
+  }
+  
+  if (qualRow !== -1) {
+    // Atualiza pontuações se fornecidas
+    var updateData = [
+      nomeCreator,
+      dados.potencialAlcance || qualData[qualRow-1][1],
+      dados.relevanciaAudiencia || qualData[qualRow-1][2],
+      dados.compatibilidadeMarca || qualData[qualRow-1][3],
+      dados.qualidadeConteudo || qualData[qualRow-1][4],
+      dados.engajamentoAudiencia || qualData[qualRow-1][5],
+      dados.historicoConversao || qualData[qualRow-1][6],
+      "=SUM(B" + (qualSheet.getLastRow()) + ":G" + (qualSheet.getLastRow()) + ")", // Pontuação Total
+      "=IF(H" + (qualSheet.getLastRow()) + ">=20, \"Excelente (20-25)\", IF(H" + (qualSheet.getLastRow()) + ">=15, \"Bom (15-19)\", IF(H" + (qualSheet.getLastRow()) + ">=10, \"Regular (10-14)\", \"Baixo Potencial (<10)\")))", // Status Qualificação
+      dados.segmento || qualData[qualRow-1][8], // Segmento
+      dados.nivelPrioridade || qualData[qualRow-1][9] // Nível de Prioridade
+    ];
+    
+    qualSheet.getRange(qualRow, 1, 1, updateData.length).setValues([updateData]);
+  }
+}
+
+/**
+ * Gerencia eventos do calendário de reuniões
+ */
+function gerenciarEventosCalendario() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ui = SpreadsheetApp.getUi();
+  
+  try {
+    var calSheet = ss.getSheetByName("Calendário de Reuniões");
+    if (!calSheet) {
+      ui.alert("Guia de Calendário não encontrada!");
+      return;
+    }
+    
+    var data = calSheet.getDataRange().getValues();
+    var calendar = CalendarApp.getDefaultCalendar();
+    var eventosAtualizados = 0;
+    var eventosNovos = 0;
+    
+    // Começa da linha 1 (pula o cabeçalho)
+    for (var i = 1; i < data.length; i++) {
+      var dataReuniao = data[i][0]; // Data
+      var horario = data[i][1]; // Horário
+      var creator = data[i][2]; // Nome Creator
+      var plataforma = data[i][3]; // Plataforma
+      var link = data[i][4]; // Link
+      var status = data[i][5]; // Status
+      var idEvento = data[i][6]; // ID do Evento
+      
+      // Verifica se tem data e hora válidas
+      if (dataReuniao && horario) {
+        // Cria uma data completa concatenando data e hora
+        var dataCompleta = new Date(dataReuniao);
+        var horaParts = horario.split(":");
+        if (horaParts.length >= 2) {
+          dataCompleta.setHours(parseInt(horaParts[0]), parseInt(horaParts[1]));
+          
+          // Cria evento de 1 hora
+          var endTime = new Date(dataCompleta.getTime() + 60 * 60 * 1000);
+          
+          // Descrição do evento
+          var desc = "Reunião com creator: " + creator;
+          if (plataforma) desc += "\nPlataforma: " + plataforma;
+          if (link) desc += "\nLink: " + link;
+          
+          // Verifica se já existe um evento
+          if (idEvento) {
+            try {
+              var evento = calendar.getEventById(idEvento);
+              if (evento) {
+                // Atualiza evento existente
+                evento.setTime(dataCompleta, endTime);
+                evento.setDescription(desc);
+                eventosAtualizados++;
+              } else {
+                // Cria novo evento se o anterior não existir
+                var novoEvento = calendar.createEvent(
+                  "Reunião: " + creator,
+                  dataCompleta,
+                  endTime,
+                  {description: desc}
+                );
+                calSheet.getRange(i + 1, 7).setValue(novoEvento.getId());
+                eventosNovos++;
+              }
+            } catch (e) {
+              // Se houver erro ao acessar o evento, cria um novo
+              var novoEvento = calendar.createEvent(
+                "Reunião: " + creator,
+                dataCompleta,
+                endTime,
+                {description: desc}
+              );
+              calSheet.getRange(i + 1, 7).setValue(novoEvento.getId());
+              eventosNovos++;
+            }
+          } else {
+            // Cria novo evento
+            var novoEvento = calendar.createEvent(
+              "Reunião: " + creator,
+              dataCompleta,
+              endTime,
+              {description: desc}
+            );
+            calSheet.getRange(i + 1, 7).setValue(novoEvento.getId());
+            eventosNovos++;
+          }
+        }
+      }
+    }
+    
+    ui.alert("Calendário atualizado com sucesso!\n" +
+             eventosAtualizados + " eventos atualizados\n" +
+             eventosNovos + " novos eventos criados");
+             
+  } catch(error) {
+    ui.alert("Erro ao gerenciar eventos do calendário: " + error.toString());
+  }
+}
+
+/**
+ * Sincroniza eventos do calendário com a planilha
+ */
+function sincronizarCalendario() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ui = SpreadsheetApp.getUi();
+  
+  try {
+    var calSheet = ss.getSheetByName("Calendário de Reuniões");
+    if (!calSheet) {
+      ui.alert("Guia de Calendário não encontrada!");
+      return;
+    }
+    
+    var calendar = CalendarApp.getDefaultCalendar();
+    var hoje = new Date();
+    var tresMesesDepois = new Date(hoje.getTime() + (90 * 24 * 60 * 60 * 1000));
+    
+    // Busca eventos no calendário
+    var eventos = calendar.getEvents(hoje, tresMesesDepois);
+    var eventosReuniao = eventos.filter(function(evento) {
+      return evento.getTitle().indexOf("Reunião:") === 0;
+    });
+  } catch(error) {
+    ui.alert("Erro ao sincronizar calendário: " + error.toString());
+  }
+}
+
+/**
+ * Limpa dados antigos e desnecessários da planilha
+ */
+function limparDadosAntigos() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ui = SpreadsheetApp.getUi();
+  
+  // Confirma com o usuário antes de prosseguir
+  var response = ui.alert(
+    'Limpar Dados Antigos',
+    'Isso removerá dados antigos e desnecessários da planilha. Deseja continuar?',
+    ui.ButtonSet.YES_NO
+  );
+  
+  if (response !== ui.Button.YES) {
+    return;
+  }
+  
+  try {
+    // Limpa reuniões antigas do calendário
+    var calSheet = ss.getSheetByName("Calendário de Reuniões");
+    if (calSheet) {
+      var calData = calSheet.getDataRange().getValues();
+      var hoje = new Date();
+      var linhasParaRemover = [];
+      
+      // Identifica reuniões antigas (mais de 3 meses)
+      for (var i = 1; i < calData.length; i++) {
+        var dataReuniao = calData[i][0];
+        if (dataReuniao && dataReuniao instanceof Date) {
+          var diffMeses = (hoje.getTime() - dataReuniao.getTime()) / (30 * 24 * 60 * 60 * 1000);
+          if (diffMeses > 3) {
+            linhasParaRemover.push(i + 1);
+          }
+        }
+      }
+      
+      // Remove linhas de baixo para cima para não afetar os índices
+      for (var i = linhasParaRemover.length - 1; i >= 0; i--) {
+        calSheet.deleteRow(linhasParaRemover[i]);
+      }
+    }
+    
+    // Limpa histórico de campanhas antigas
+    var campSheet = ss.getSheetByName("Histórico de Campanhas");
+    if (campSheet) {
+      var campData = campSheet.getDataRange().getValues();
+      var linhasParaRemover = [];
+      
+      // Identifica campanhas antigas (mais de 6 meses)
+      for (var i = 1; i < campData.length; i++) {
+        var dataCampanha = campData[i][2];
+        if (dataCampanha && dataCampanha instanceof Date) {
+          var diffMeses = (hoje.getTime() - dataCampanha.getTime()) / (30 * 24 * 60 * 60 * 1000);
+          if (diffMeses > 6) {
+            linhasParaRemover.push(i + 1);
+          }
+        }
+      }
+      
+      // Remove linhas de baixo para cima para não afetar os índices
+      for (var i = linhasParaRemover.length - 1; i >= 0; i--) {
+        campSheet.deleteRow(linhasParaRemover[i]);
+      }
+    }
+    
+    ui.alert("Dados antigos limpos com sucesso!");
+    
+  } catch(error) {
+    ui.alert("Erro ao limpar dados antigos: " + error.toString());
+  }
+}
+
+/**
+ * Configura gatilhos automáticos para as funções principais
+ */
+function configurarGatilhosAutomaticos() {
+  var ui = SpreadsheetApp.getUi();
+  
+  try {
+    // Remove gatilhos existentes
+    var gatilhos = ScriptApp.getProjectTriggers();
+    for (var i = 0; i < gatilhos.length; i++) {
+      ScriptApp.deleteTrigger(gatilhos[i]);
+    }
+    
+    // Configura gatilho para atualização diária de estatísticas
+    ScriptApp.newTrigger('atualizarEstatisticas')
+      .timeBased()
+      .everyDays(1)
+      .atHour(1)
+      .create();
+    
+    // Configura gatilho para sincronização do calendário a cada 6 horas
+    ScriptApp.newTrigger('sincronizarCalendario')
+      .timeBased()
+      .everyHours(6)
+      .create();
+    
+    // Configura gatilho para limpeza mensal de dados antigos
+    ScriptApp.newTrigger('limparDadosAntigos')
+      .timeBased()
+      .onMonthDay(1)
+      .atHour(2)
+      .create();
+    
+    ui.alert("Gatilhos automáticos configurados com sucesso!");
+    
+  } catch(error) {
+    ui.alert("Erro ao configurar gatilhos: " + error.toString());
+  }
+}
+
+/**
+ * Verifica e notifica sobre tarefas pendentes
+ */
+function verificarTarefasPendentes() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ui = SpreadsheetApp.getUi();
+  
+  try {
+    var mainSheet = ss.getSheetByName("Guia Principal");
+    if (!mainSheet) {
+      ui.alert("Guia Principal não encontrada!");
+      return;
+    }
+    
+    var data = mainSheet.getDataRange().getValues();
+    var tarefasPendentes = [];
+    var hoje = new Date();
+    
+    // Verifica cada linha por tarefas pendentes
+    for (var i = 1; i < data.length; i++) {
+      var proximaAcao = data[i][12]; // Próxima Ação
+      var dataReuniao = data[i][13]; // Data Reunião
+      var creator = data[i][1]; // Nome Creator
+      
+      if (proximaAcao && proximaAcao !== "Nenhuma") {
+        if (dataReuniao && dataReuniao instanceof Date) {
+          // Verifica se a reunião está próxima
+          var diffDias = (dataReuniao.getTime() - hoje.getTime()) / (24 * 60 * 60 * 1000);
+          if (diffDias <= 2 && diffDias > 0) {
+            tarefasPendentes.push("Reunião em " + Math.ceil(diffDias) + " dias com " + creator);
+          }
+        } else {
+          tarefasPendentes.push("Ação pendente para " + creator + ": " + proximaAcao);
+        }
+      }
+    }
+    
+    // Verifica qualificações pendentes
+    var qualSheet = ss.getSheetByName("Qualificação dos Creators");
+    if (qualSheet) {
+      var qualData = qualSheet.getDataRange().getValues();
+      for (var i = 1; i < qualData.length; i++) {
+        var pontuacaoTotal = qualData[i][7]; // Pontuação Total
+        if (pontuacaoTotal === 0) {
+          tarefasPendentes.push("Qualificação pendente para " + qualData[i][0]);
+        }
+      }
+    }
+    
+    // Exibe notificação com tarefas pendentes
+    if (tarefasPendentes.length > 0) {
+      ui.alert(
+        "Tarefas Pendentes",
+        "Você tem " + tarefasPendentes.length + " tarefas pendentes:\n\n" +
+        tarefasPendentes.join("\n"),
+        ui.ButtonSet.OK
+      );
+    } else {
+      ui.alert("Não há tarefas pendentes no momento!");
+    }
+    
+  } catch(error) {
+    ui.alert("Erro ao verificar tarefas pendentes: " + error.toString());
+  }
+}
+
+/**
+ * Gera backup dos dados importantes
+ */
+function gerarBackup() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ui = SpreadsheetApp.getUi();
+  
+  try {
+    // Cria nova planilha para backup
+    var backupSS = SpreadsheetApp.create("Backup_Creators_" + new Date().toISOString().slice(0,10));
+    
+    // Lista de abas para fazer backup
+    var abasParaBackup = [
+      "Guia Principal",
+      "Qualificação dos Creators",
+      "Perfil Detalhado do Creator",
+      "Histórico de Campanhas",
+      "Calendário de Reuniões"
+    ];
+    
+    // Copia cada aba para o backup
+    abasParaBackup.forEach(function(nomeAba) {
+      var sourceSheet = ss.getSheetByName(nomeAba);
+      if (sourceSheet) {
+        // Copia dados e formatação
+        var targetSheet = backupSS.insertSheet(nomeAba);
+        var range = sourceSheet.getDataRange();
+        var data = range.getValues();
+        var formats = range.getNumberFormats();
+        var backgrounds = range.getBackgrounds();
+        var fontColors = range.getFontColors();
+        var fontFamilies = range.getFontFamilies();
+        var fontSizes = range.getFontSizes();
+        var fontLines = range.getFontLines();
+        var fontWeights = range.getFontWeights();
+        var horizontalAlignments = range.getHorizontalAlignments();
+        var verticalAlignments = range.getVerticalAlignments();
+        
+        // Aplica dados e formatação
+        var targetRange = targetSheet.getRange(1, 1, data.length, data[0].length);
+        targetRange.setValues(data);
+        targetRange.setNumberFormats(formats);
+        targetRange.setBackgrounds(backgrounds);
+        targetRange.setFontColors(fontColors);
+        targetRange.setFontFamilies(fontFamilies);
+        targetRange.setFontSizes(fontSizes);
+        targetRange.setFontLines(fontLines);
+        targetRange.setFontWeights(fontWeights);
+        targetRange.setHorizontalAlignments(horizontalAlignments);
+        targetRange.setVerticalAlignments(verticalAlignments);
+        
+        // Ajusta largura das colunas
+        for (var i = 1; i <= data[0].length; i++) {
+          targetSheet.setColumnWidth(i, sourceSheet.getColumnWidth(i));
+        }
+      }
+    });
+    
+  } catch(error) {
+    ui.alert("Erro ao gerar backup: " + error.toString());
+  }
+}
+
+/**
+ * Função auxiliar para formatar data no padrão brasileiro
+ * @param {Date} data Data para formatar
+ * @return {string} Data formatada
+ */
+function formatarData(data) {
+  if (!data || !(data instanceof Date)) return "";
+  return data.getDate().toString().padStart(2, '0') + '/' +
+         (data.getMonth() + 1).toString().padStart(2, '0') + '/' +
+         data.getFullYear();
+}
+
+/**
+ * Função auxiliar para formatar moeda no padrão brasileiro
+ * @param {number} valor Valor para formatar
+ * @return {string} Valor formatado
+ */
+function formatarMoeda(valor) {
+  if (isNaN(valor)) return "R$ 0,00";
+  return "R$ " + valor.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+}
+
+/**
+ * Função auxiliar para formatar porcentagem
+ * @param {number} valor Valor para formatar (0-100)
+ * @return {string} Valor formatado
+ */
+function formatarPorcentagem(valor) {
+  if (isNaN(valor)) return "0%";
+  return valor.toFixed(1).replace('.', ',') + "%";
+}
+
+/**
+ * Função auxiliar para gerar ID único
+ * @return {string} ID único gerado
+ */
+function gerarIdUnico() {
+  return "CR" + new Date().getTime().toString().slice(-6);
+}
+
+/**
+ * Função auxiliar para calcular diferença em dias entre duas datas
+ * @param {Date} data1 Primeira data
+ * @param {Date} data2 Segunda data
+ * @return {number} Diferença em dias
+ */
+function calcularDiferencaDias(data1, data2) {
+  return Math.round((data2.getTime() - data1.getTime()) / (24 * 60 * 60 * 1000));
+}
+
+/**
+ * Função auxiliar para validar dados numéricos
+ * @param {any} valor Valor para validar
+ * @param {number} min Valor mínimo permitido
+ * @param {number} max Valor máximo permitido
+ * @return {boolean} Verdadeiro se o valor é válido
+ */
+function validarNumero(valor, min, max) {
+  var num = parseFloat(valor);
+  return !isNaN(num) && num >= min && num <= max;
+}
+
+/**
+ * Função auxiliar para limpar formatação de texto
+ * @param {string} texto Texto para limpar
+ * @return {string} Texto limpo
+ */
+function limparTexto(texto) {
+  return texto.trim().replace(/\s+/g, ' ');
+}
+
+/**
+ * Função auxiliar para validar nome do creator
+ * @param {string} nome Nome para validar
+ * @return {boolean} Verdadeiro se o nome é válido
+ */
+function validarNomeCreator(nome) {
+  return nome && nome.trim().length >= 3 && nome.trim().length <= 100;
+}
+
+// Fim do arquivo
