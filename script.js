@@ -67,16 +67,11 @@ function exportarCalendario() {
 function onOpen() {
   var ui = SpreadsheetApp.getUi();
   ui.createMenu('Gestão de Creators')
-    .addItem('Criar/Redefinir Planilha', 'criarPlanilhaCompleta')
-    .addSeparator()
-    .addItem('Atualizar Estatísticas', 'atualizarEstatisticas')
+    .addItem('Criar Planilha Completa', 'criarPlanilhaCompleta')
+    .addItem('Adicionar Creator Exemplo', 'criarCreatorExemplo')
+    .addItem('Exportar Calendário', 'exportarCalendario')
     .addItem('Gerar Relatório', 'gerarRelatorio')
-    .addSeparator()
-    .addItem('Exportar Calendário de Reuniões', 'exportarCalendario')
-    .addSeparator()
-    .addItem('Configurar Dashboard', 'configurarDashboard')
-    .addItem('Inicializar Página de Instruções', 'inicializarPaginaInstrucoes')
-    .addItem('Inicializar Sumário Executivo', 'inicializarSumarioExecutivo')
+    .addItem('Atualizar Estatísticas', 'atualizarEstatisticas')
     .addToUi();
 }
 
@@ -168,46 +163,6 @@ function getMediaEngajamento(sheet) {
   }
   
   return (soma / engajamentos.length * 100).toFixed(2);
-}  
-  // ===== SEÇÃO 5: PRINCIPAIS INSIGHTS E RECOMENDAÇÕES =====
-  var nextRow = Math.max(campRow + 2, nextRow + 12);
-  
-  reportSheet.getRange(nextRow, 1, 1, 7).merge();
-  reportSheet.getRange(nextRow, 1).setValue("5. INSIGHTS E RECOMENDAÇÕES");
-  reportSheet.getRange(nextRow, 1).setFontWeight("bold").setFontSize(12);
-  reportSheet.getRange(nextRow, 1, 1, 7).setBackground("#e3f2fd");
-  
-  reportSheet.getRange(nextRow + 1, 1, 1, 7).merge();
-  reportSheet.getRange(nextRow + 1, 1).setValue("Os insights e recomendações abaixo são baseados na análise dos dados do período:");
-  reportSheet.getRange(nextRow + 1, 1).setFontStyle("italic");
-  
-  // Adiciona linhas para insights
-  var insightsTexto = [
-    "• Distribuição por plataforma: " + getTopPlataforma(mainSheet) + " é a plataforma com maior número de creators.",
-    "• Qualificação: " + getTopQualificacao(ss) + " dos creators avaliados possuem pontuação 'Excelente'.",
-    "• Taxa de conversão: " + getTaxaConversao(mainSheet) + " dos creators contatados avançam para uma parceria.",
-    "• Engajamento: A média de engajamento dos creators ativos é de " + getMediaEngajamento(mainSheet) + "%.",
-    "",
-    "Recomendações:",
-    "1. [Incluir recomendações baseadas nos dados, como focar em determinadas plataformas ou tipos de creators]",
-    "2. [Recomendação de ajuste na estratégia com base na análise dos resultados]",
-    "3. [Sugestões para melhorar a taxa de conversão ou outros KPIs relevantes]"
-  ];
-  
-  for (var i = 0; i < insightsTexto.length; i++) {
-    reportSheet.getRange(nextRow + 2 + i, 1, 1, 7).merge();
-    reportSheet.getRange(nextRow + 2 + i, 1).setValue(insightsTexto[i]);
-  }
-  
-  // Ajusta largura das colunas
-  reportSheet.autoResizeColumns(1, 7);
-  
-  // Protege o relatório contra edições acidentais
-  var protection = reportSheet.protect().setDescription("Proteger Relatório");
-  protection.setWarningOnly(true);
-  
-  // Exibe mensagem
-  SpreadsheetApp.getUi().alert("Relatório gerado com sucesso!");
 }
 
 /**
@@ -971,7 +926,6 @@ function criarPlanilhaCompleta() {
     {nome: "Qualificação dos Creators", colunas: ["Nome Creator", "Potencial Alcance (1-5)", "Relevância para Audiência (1-5)", "Compatibilidade com Marca (1-5)", "Qualidade de Conteúdo (1-5)", "Engajamento da Audiência (1-5)", "Histórico de Conversão (1-5)", "Pontuação Total", "Status Qualificação", "Segmento", "Tier de Prioridade"]},
     {nome: "ICP de Creators", colunas: ["Critério", "Perfil Ideal (ICP)", "Creator 1", "Creator 2", "Creator 3", "Creator 4", "Creator 5", "Creator 6", "Creator 7", "Creator 8"]},
     {nome: "Perfil Detalhado do Creator", colunas: ["Nome Creator", "Papel Decisão", "Objetivos Pessoais", "Riscos ou Objeções", "Estilo de Comunicação", "Influenciadores", "Necessidades Específicas", "Histórico de Relacionamento"]},
-    {nome: "Análise Competitiva", colunas: ["Creator", "Trabalha com Concorrente 1", "Trabalha com Concorrente 2", "Trabalha com Concorrente 3", "Nossa Proposta Valor", "Diferencial Competitivo", "Estratégia de Abordagem"]},
     {nome: "Análise de Interesses", colunas: ["Creators Envolvidos", "Interesses Compartilhados", "Pontos de Divergência", "Potencial Colaboração", "Ações Recomendadas"]},
     
     // Planejamento Estratégico
@@ -1033,11 +987,8 @@ function criarPlanilhaCompleta() {
   // Inicializa páginas especiais
   inicializarPaginaInstrucoes();
   inicializarSumarioExecutivo();
-  inicializarAnaliseCompetitiva();
-  inicializarJornadaSeguidor();
-  inicializarMatrizPersonalizacao();
-  inicializarPlaybookEngajamento(); // Nova chamada para inicializar o playbook
-  inicializarAnaliseInteresses(); // Nova chamada para inicializar a análise de interesses
+  inicializarPlaybookEngajamento();
+  inicializarAnaliseInteresses();
   
   // Configura o dashboard
   configurarDashboard();
@@ -1182,7 +1133,7 @@ function onEdit(e) {
     // Gerencia eventos na guia Qualificação dos Creators
     if(sheet.getName() == "Qualificação dos Creators"){
       // Atualiza pontuação total quando qualquer pontuação é alterada
-      if(col >= 2 && col <= 7 && row > 4){ // Colunas de pontuação (B-G)
+      if(col >= 2 && col <= 7 && row > 1){ // Colunas de pontuação (B-G)
         var pontuacaoCell = sheet.getRange(row, 8); // Coluna H = Pontuação Total
         var statusCell = sheet.getRange(row, 9); // Coluna I = Status Qualificação
         var segmentoCell = sheet.getRange(row, 10); // Coluna J = Segmento
@@ -1244,26 +1195,6 @@ function onEdit(e) {
           }
         }
       }
-      
-      // Atualiza pontuação de personalização quando qualquer critério é alterado
-      if(col >= 12 && col <= 16 && row > 4){ // Colunas de personalização (L-P)
-        var personalizacaoCell = sheet.getRange(row, 17); // Coluna Q = Pontuação Personalização
-        
-        // Verifica se a fórmula de soma está presente
-        if(!personalizacaoCell.getFormula()){
-          personalizacaoCell.setFormula("=SUM(L" + row + ":P" + row + ")");
-        }
-        
-        // Aplica formatação condicional baseada na pontuação
-        var pontuacao = personalizacaoCell.getValue();
-        if(pontuacao >= 20){
-          sheet.getRange(row, 17).setBackground("#c8e6c9"); // Verde claro
-        } else if(pontuacao >= 15){
-          sheet.getRange(row, 17).setBackground("#fff9c4"); // Amarelo claro
-        } else {
-          sheet.getRange(row, 17).setBackground("#ffcdd2"); // Vermelho claro
-        }
-      }
     }
     
     // Gerencia eventos na guia Calendário de Reuniões
@@ -1318,333 +1249,105 @@ function onEdit(e) {
  * Aplicar formatação específica para cada guia
  */
 function aplicarFormatacaoEspecifica(sheet, nomeDaGuia) {
-  if(nomeDaGuia == "Dashboard"){
-    // Será substituído pela função configurarDashboard mais avançada
-    sheet.getRange("A1:Z1000").setBackground("#f5f5f5");
-    sheet.getRange(1, 1).setValue("Dashboard Interativo - Gestão de Creators");
-    sheet.getRange(1, 1).setFontSize(16);
-  }
-  
-  if(nomeDaGuia == "Estatísticas Gerais"){
-    // Adiciona fórmulas para cálculos automáticos
-    var mainSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Guia Principal");
-    
-    sheet.getRange("A2").setValue("Total Creators Captados");
-    sheet.getRange("B2").setFormula('=COUNTA(\'Guia Principal\'!B2:B)');
-    
-    sheet.getRange("A3").setValue("Total Reuniões Agendadas");
-    sheet.getRange("B3").setFormula('=COUNTIF(\'Guia Principal\'!L2:L, "Reunião Agendada")');
-    
-    sheet.getRange("A4").setValue("Total Confirmados");
-    sheet.getRange("B4").setFormula('=COUNTIF(\'Guia Principal\'!L2:L, "Confirmado")');
-    
-    sheet.getRange("A5").setValue("Média Engajamento (%)");
-    sheet.getRange("B5").setFormula('=AVERAGE(\'Guia Principal\'!G2:G)');
-    sheet.getRange("B5").setNumberFormat("0.00%");
-    
-    sheet.getRange("A6").setValue("Taxa de Conversão (%)");
-    sheet.getRange("B6").setFormula('=COUNTIF(\'Guia Principal\'!L2:L, "Parceria Fechada")/COUNTA(\'Guia Principal\'!B2:B)');
-    sheet.getRange("B6").setNumberFormat("0.00%");
-    
-    sheet.getRange("A8").setValue("Creators por Plataforma");
-    
-    // Tabela de creators por plataforma
-    sheet.getRange("A9").setValue("Plataforma");
-    sheet.getRange("B9").setValue("Quantidade");
-    
-    // Preenche plataformas
-    var row = 10;
-    for (var i = 0; i < PLATAFORMAS.length; i++) {
-      sheet.getRange(row, 1).setValue(PLATAFORMAS[i]);
-      sheet.getRange(row, 2).setFormula('=COUNTIF(\'Guia Principal\'!E2:E, "' + PLATAFORMAS[i] + '")');
-      row++;
+  try {
+    // Garante que a planilha tenha pelo menos uma linha de dados
+    if (sheet.getLastRow() === 0) {
+      sheet.appendRow([""]);
     }
     
-    // Adiciona cabeçalhos para estatísticas por período
-    sheet.getRange("D2").setValue("ANÁLISE POR PERÍODO");
-    sheet.getRange("D2").setFontWeight("bold").setBackground("#e3f2fd");
-    
-    sheet.getRange("D3").setValue("Período");
-    sheet.getRange("E3").setValue("Novos Creators");
-    sheet.getRange("F3").setValue("Conversões");
-    sheet.getRange("G3").setValue("Taxa de Conversão");
-    
-    // Formata cabeçalhos
-    sheet.getRange("D3:G3").setBackground("#f5f5f5").setFontWeight("bold");
-    
-    // Preenche períodos (últimos 3 meses)
-    var today = new Date();
-    for (var i = 0; i < 3; i++) {
-      var monthDate = new Date(today.getFullYear(), today.getMonth() - i, 1);
-      var monthName = Utilities.formatDate(monthDate, "GMT-3", "MMM yyyy");
-      var startOfMonth = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1);
-      var endOfMonth = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0);
-      
-      sheet.getRange(4 + i, 4).setValue(monthName);
-      
-      // Novos creators no mês
-      sheet.getRange(4 + i, 5).setFormula('=COUNTIFS(\'Guia Principal\'!K2:K, ">=" & DATE(' + 
-                                           monthDate.getFullYear() + ',' + (monthDate.getMonth() + 1) + ',1), \'Guia Principal\'!K2:K, "<=" & DATE(' + 
-                                           monthDate.getFullYear() + ',' + (monthDate.getMonth() + 1) + ',' + endOfMonth.getDate() + '))');
-      
-      // Conversões no mês
-      sheet.getRange(4 + i, 6).setFormula('=COUNTIFS(\'Guia Principal\'!L2:L, "Parceria Fechada", \'Guia Principal\'!K2:K, ">=" & DATE(' + 
-                                           monthDate.getFullYear() + ',' + (monthDate.getMonth() + 1) + ',1), \'Guia Principal\'!K2:K, "<=" & DATE(' + 
-                                           monthDate.getFullYear() + ',' + (monthDate.getMonth() + 1) + ',' + endOfMonth.getDate() + '))');
-      
-      // Taxa de conversão
-      sheet.getRange(4 + i, 7).setFormula('=IF(E' + (4 + i) + '>0, F' + (4 + i) + '/E' + (4 + i) + ', 0)');
-      sheet.getRange(4 + i, 7).setNumberFormat("0.00%");
-    }
-  }
-  
-  if(nomeDaGuia == "Plano de Conteúdo") {
-    // Estrutura para a matriz de conteúdo baseada no ABM Template
-    sheet.getRange("A1:K1").merge();
-    sheet.getRange("A1").setValue("PLANO DE CONTEÚDO POR JORNADA DO CLIENTE");
-    sheet.getRange("A1").setFontSize(14).setFontWeight("bold").setHorizontalAlignment("center");
-    sheet.getRange("A1:K1").setBackground("#4285F4").setFontColor("white");
-    
-    // Cabeçalho da jornada
-    var jornadas = [
-      "Identificação do Problema",
-      "Exploração da Solução",
-      "Construção de Requisitos",
-      "Seleção",
-      "Validação",
-      "Criação de Consenso"
-    ];
-    sheet.getRange(3, 2, 1, jornadas.length).setValues([jornadas]);
-    sheet.getRange(3, 2, 1, jornadas.length).setBackground("#e3f2fd").setFontWeight("bold").setHorizontalAlignment("center");
-    
-    // Tipos de conteúdo
-    var tiposConteudo = [
-      "Posts Informativos",
-      "Tutoriais/How-To",
-      "Reviews/Unboxing",
-      "Comparativos",
-      "Storytelling/Testemunhos",
-      "FAQ/Dúvidas Comuns",
-      "Behind the Scenes",
-      "Lives/Q&A"
-    ];
-    
-    // Inserir tipos de conteúdo
-    sheet.getRange(4, 1, tiposConteudo.length, 1).setValues(tiposConteudo.map(tipo => [tipo]));
-    sheet.getRange(4, 1, tiposConteudo.length, 1).setBackground("#f5f5f5").setFontWeight("bold");
-    
-    // Dados da matriz
-    var matrizConteudo = [
-      // Posts Informativos
-      ["• Formato: Posts curtos e objetivos\n• Personalização: Baixa\n• Foco: Awareness inicial"],
-      ["• Formato: Posts técnicos\n• Personalização: Média\n• Foco: Educação"],
-      ["• Formato: Posts detalhados\n• Personalização: Alta\n• Foco: Especificações"],
-      ["• Formato: Posts comparativos\n• Personalização: Alta\n• Foco: Diferenciação"],
-      ["• Formato: Posts de validação\n• Personalização: Alta\n• Foco: Confiança"],
-      ["• Formato: Posts de consenso\n• Personalização: Alta\n• Foco: Alinhamento"],
-      
-      // Tutoriais/How-To
-      ["• Formato: Vídeos curtos\n• Personalização: Média\n• Foco: Demonstração"],
-      ["• Formato: Tutoriais detalhados\n• Personalização: Alta\n• Foco: Aprendizado"],
-      ["• Formato: Guias técnicos\n• Personalização: Alta\n• Foco: Implementação"],
-      ["• Formato: Tutoriais comparativos\n• Personalização: Alta\n• Foco: Escolha"],
-      ["• Formato: Tutoriais avançados\n• Personalização: Alta\n• Foco: Validação"],
-      ["• Formato: Tutoriais colaborativos\n• Personalização: Alta\n• Foco: Consenso"],
-      
-      // Reviews/Unboxing
-      ["• Formato: Reviews introdutórios\n• Personalização: Média\n• Foco: Apresentação"],
-      ["• Formato: Reviews técnicos\n• Personalização: Alta\n• Foco: Análise"],
-      ["• Formato: Reviews detalhados\n• Personalização: Alta\n• Foco: Especificações"],
-      ["• Formato: Reviews comparativos\n• Personalização: Alta\n• Foco: Decisão"],
-      ["• Formato: Reviews de validação\n• Personalização: Alta\n• Foco: Confirmação"],
-      ["• Formato: Reviews de consenso\n• Personalização: Alta\n• Foco: Alinhamento"],
-      
-      // Comparativos
-      ["• Formato: Comparativos básicos\n• Personalização: Média\n• Foco: Introdução"],
-      ["• Formato: Comparativos técnicos\n• Personalização: Alta\n• Foco: Análise"],
-      ["• Formato: Comparativos detalhados\n• Personalização: Alta\n• Foco: Requisitos"],
-      ["• Formato: Comparativos avançados\n• Personalização: Alta\n• Foco: Decisão"],
-      ["• Formato: Comparativos de validação\n• Personalização: Alta\n• Foco: Confirmação"],
-      ["• Formato: Comparativos de consenso\n• Personalização: Alta\n• Foco: Alinhamento"],
-      
-      // Storytelling/Testemunhos
-      ["• Formato: Histórias introdutórias\n• Personalização: Média\n• Foco: Conexão"],
-      ["• Formato: Histórias de solução\n• Personalização: Alta\n• Foco: Exemplos"],
-      ["• Formato: Histórias de requisitos\n• Personalização: Alta\n• Foco: Casos"],
-      ["• Formato: Histórias de decisão\n• Personalização: Alta\n• Foco: Escolha"],
-      ["• Formato: Histórias de validação\n• Personalização: Alta\n• Foco: Confirmação"],
-      ["• Formato: Histórias de consenso\n• Personalização: Alta\n• Foco: Alinhamento"],
-      
-      // FAQ/Dúvidas Comuns
-      ["• Formato: FAQ básica\n• Personalização: Baixa\n• Foco: Informação"],
-      ["• Formato: FAQ técnica\n• Personalização: Média\n• Foco: Esclarecimento"],
-      ["• Formato: FAQ detalhada\n• Personalização: Alta\n• Foco: Requisitos"],
-      ["• Formato: FAQ de seleção\n• Personalização: Alta\n• Foco: Decisão"],
-      ["• Formato: FAQ de validação\n• Personalização: Alta\n• Foco: Confirmação"],
-      ["• Formato: FAQ de consenso\n• Personalização: Alta\n• Foco: Alinhamento"],
-      
-      // Behind the Scenes
-      ["• Formato: BTS básico\n• Personalização: Média\n• Foco: Transparência"],
-      ["• Formato: BTS técnico\n• Personalização: Alta\n• Foco: Processo"],
-      ["• Formato: BTS detalhado\n• Personalização: Alta\n• Foco: Requisitos"],
-      ["• Formato: BTS de seleção\n• Personalização: Alta\n• Foco: Decisão"],
-      ["• Formato: BTS de validação\n• Personalização: Alta\n• Foco: Confirmação"],
-      ["• Formato: BTS de consenso\n• Personalização: Alta\n• Foco: Alinhamento"],
-      
-      // Lives/Q&A
-      ["• Formato: Lives introdutórias\n• Personalização: Média\n• Foco: Interação"],
-      ["• Formato: Lives técnicas\n• Personalização: Alta\n• Foco: Esclarecimento"],
-      ["• Formato: Lives de requisitos\n• Personalização: Alta\n• Foco: Detalhamento"],
-      ["• Formato: Lives de seleção\n• Personalização: Alta\n• Foco: Decisão"],
-      ["• Formato: Lives de validação\n• Personalização: Alta\n• Foco: Confirmação"],
-      ["• Formato: Lives de consenso\n• Personalização: Alta\n• Foco: Alinhamento"]
-    ];
-    
-    // Inserir dados da matriz
-    sheet.getRange(4, 2, matrizConteudo.length, matrizConteudo[0].length).setValues(matrizConteudo);
-    
-    // Formatação condicional para níveis de personalização
-    var niveis = ["Baixa", "Média", "Alta"];
-    var cores = ["#c8e6c9", "#fff9c4", "#ffcdd2"];
-    
-    for (var i = 0; i < niveis.length; i++) {
-      var range = sheet.getRange(4, 2, matrizConteudo.length, matrizConteudo[0].length);
-      var rule = SpreadsheetApp.newConditionalFormatRule()
-        .whenTextContains(niveis[i])
-        .setBackground(cores[i])
-        .build();
-      var rules = [rule];
-      range.setConditionalFormatRules(rules);
+    // Formatação padrão para todas as guias
+    var lastCol = sheet.getLastColumn();
+    var lastRow = sheet.getLastRow();
+    if (lastCol > 0 && lastRow > 0) {
+      sheet.getRange(1, 1, lastRow, lastCol).setBackground("#ffffff");
     }
     
-    // Ajustar altura das linhas
-    sheet.setRowHeights(4, matrizConteudo.length, 100);
+    if(nomeDaGuia == "Dashboard"){
+      if (lastCol > 0 && lastRow > 0) {
+        sheet.getRange(1, 1, lastRow, lastCol).setBackground("#f5f5f5");
+      }
+      sheet.getRange(1, 1).setValue("Dashboard Interativo - Gestão de Creators");
+      sheet.getRange(1, 1).setFontSize(16);
+    }
     
-    // Adicionar instruções
-    var lastRow = 4 + matrizConteudo.length + 2;
-    sheet.getRange(lastRow, 1, 1, jornadas.length + 1).merge();
-    sheet.getRange(lastRow, 1).setValue("Instruções: Use esta matriz para planejar o conteúdo ideal para cada fase da jornada do cliente. Considere o formato e nível de personalização necessários para cada interseção.");
-    sheet.getRange(lastRow, 1).setFontStyle("italic").setBackground("#fff3e0");
+    if(nomeDaGuia == "Estatísticas Gerais"){
+      // Adiciona fórmulas para cálculos automáticos
+      var mainSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Guia Principal");
+      
+      sheet.getRange("A2").setValue("Total Creators Captados");
+      sheet.getRange("B2").setFormula('=COUNTA(\'Guia Principal\'!B2:B)');
+      
+      sheet.getRange("A3").setValue("Total Reuniões Agendadas");
+      sheet.getRange("B3").setFormula('=COUNTIF(\'Guia Principal\'!L2:L, "Reunião Agendada")');
+      
+      sheet.getRange("A4").setValue("Total Confirmados");
+      sheet.getRange("B4").setFormula('=COUNTIF(\'Guia Principal\'!L2:L, "Confirmado")');
+      
+      sheet.getRange("A5").setValue("Média Engajamento (%)");
+      sheet.getRange("B5").setFormula('=AVERAGE(\'Guia Principal\'!G2:G)');
+      sheet.getRange("B5").setNumberFormat("0.00%");
+      
+      sheet.getRange("A6").setValue("Taxa de Conversão (%)");
+      sheet.getRange("B6").setFormula('=COUNTIF(\'Guia Principal\'!L2:L, "Parceria Fechada")/COUNTA(\'Guia Principal\'!B2:B)');
+      sheet.getRange("B6").setNumberFormat("0.00%");
+      
+      sheet.getRange("A8").setValue("Creators por Plataforma");
+      
+      // Tabela de creators por plataforma
+      sheet.getRange("A9").setValue("Plataforma");
+      sheet.getRange("B9").setValue("Quantidade");
+      
+      // Preenche plataformas
+      var row = 10;
+      for (var i = 0; i < PLATAFORMAS.length; i++) {
+        sheet.getRange(row, 1).setValue(PLATAFORMAS[i]);
+        sheet.getRange(row, 2).setFormula('=COUNTIF(\'Guia Principal\'!E2:E, "' + PLATAFORMAS[i] + '")');
+        row++;
+      }
+      
+      // Adiciona cabeçalhos para estatísticas por período
+      sheet.getRange("D2").setValue("ANÁLISE POR PERÍODO");
+      sheet.getRange("D2").setFontWeight("bold").setBackground("#e3f2fd");
+      
+      sheet.getRange("D3").setValue("Período");
+      sheet.getRange("E3").setValue("Novos Creators");
+      sheet.getRange("F3").setValue("Conversões");
+      sheet.getRange("G3").setValue("Taxa de Conversão");
+      
+      // Formata cabeçalhos
+      sheet.getRange("D3:G3").setBackground("#f5f5f5").setFontWeight("bold");
+      
+      // Preenche períodos (últimos 3 meses)
+      var today = new Date();
+      for (var i = 0; i < 3; i++) {
+        var monthDate = new Date(today.getFullYear(), today.getMonth() - i, 1);
+        var monthName = Utilities.formatDate(monthDate, "GMT-3", "MMM yyyy");
+        var startOfMonth = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1);
+        var endOfMonth = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0);
+        
+        sheet.getRange(4 + i, 4).setValue(monthName);
+        
+        // Novos creators no mês
+        sheet.getRange(4 + i, 5).setFormula('=COUNTIFS(\'Guia Principal\'!K2:K, ">=" & DATE(' + 
+                                             monthDate.getFullYear() + ',' + (monthDate.getMonth() + 1) + ',1), \'Guia Principal\'!K2:K, "<=" & DATE(' + 
+                                             monthDate.getFullYear() + ',' + (monthDate.getMonth() + 1) + ',' + endOfMonth.getDate() + '))');
+        
+        // Conversões no mês
+        sheet.getRange(4 + i, 6).setFormula('=COUNTIFS(\'Guia Principal\'!L2:L, "Parceria Fechada", \'Guia Principal\'!K2:K, ">=" & DATE(' + 
+                                             monthDate.getFullYear() + ',' + (monthDate.getMonth() + 1) + ',1), \'Guia Principal\'!K2:K, "<=" & DATE(' + 
+                                             monthDate.getFullYear() + ',' + (monthDate.getMonth() + 1) + ',' + endOfMonth.getDate() + '))');
+        
+        // Taxa de conversão
+        sheet.getRange(4 + i, 7).setFormula('=IF(E' + (4 + i) + '>0, F' + (4 + i) + '/E' + (4 + i) + ', 0)');
+        sheet.getRange(4 + i, 7).setNumberFormat("0.00%");
+      }
+    }
     
-    // Congelar cabeçalhos
-    sheet.setFrozenRows(3);
-    sheet.setFrozenColumns(1);
-  }
-  
-  if(nomeDaGuia == "Qualificação dos Creators") {
-    // Configuração básica da planilha
-    sheet.setColumnWidth(1, 200);  // Nome Creator
-    sheet.setColumnWidth(2, 150);  // Potencial Alcance
-    sheet.setColumnWidth(3, 150);  // Relevância para Audiência
-    sheet.setColumnWidth(4, 150);  // Compatibilidade com Marca
-    sheet.setColumnWidth(5, 150);  // Qualidade de Conteúdo
-    sheet.setColumnWidth(6, 150);  // Engajamento da Audiência
-    sheet.setColumnWidth(7, 150);  // Histórico de Conversão
-    sheet.setColumnWidth(8, 150);  // Pontuação Total
-    sheet.setColumnWidth(9, 150);  // Status Qualificação
-    sheet.setColumnWidth(10, 150); // Segmento
-    sheet.setColumnWidth(11, 150); // Tier de Prioridade
+    // Ajusta largura das colunas automaticamente
+    sheet.autoResizeColumns(1, sheet.getLastColumn());
     
-    // Novos campos para Capacidade de Personalização
-    sheet.setColumnWidth(12, 150); // Flexibilidade Adaptação
-    sheet.setColumnWidth(13, 150); // Autenticidade Conteúdo
-    sheet.setColumnWidth(14, 150); // Consistência Briefings
-    sheet.setColumnWidth(15, 150); // Conhecimento Produto
-    sheet.setColumnWidth(16, 150); // Adequação Segmentos
-    sheet.setColumnWidth(17, 150); // Pontuação Personalização
-    
-    // Título principal
-    sheet.getRange("A1:Q1").merge();
-    sheet.getRange("A1").setValue("QUALIFICAÇÃO DOS CREATORS");
-    sheet.getRange("A1").setFontSize(16).setFontWeight("bold").setHorizontalAlignment("center");
-    sheet.getRange("A1:Q1").setBackground("#4285F4").setFontColor("white");
-    
-    // Subtítulo
-    sheet.getRange("A2:Q2").merge();
-    sheet.getRange("A2").setValue("Avaliação Completa de Potencial e Capacidade de Personalização");
-    sheet.getRange("A2").setHorizontalAlignment("center").setFontStyle("italic");
-    
-    // Cabeçalhos das colunas
-    var headers = [
-      "Nome Creator",
-      "Potencial Alcance (1-5)",
-      "Relevância para Audiência (1-5)",
-      "Compatibilidade com Marca (1-5)",
-      "Qualidade de Conteúdo (1-5)",
-      "Engajamento da Audiência (1-5)",
-      "Histórico de Conversão (1-5)",
-      "Pontuação Total",
-      "Status Qualificação",
-      "Segmento",
-      "Tier de Prioridade",
-      "Flexibilidade Adaptação (1-5)",
-      "Autenticidade Conteúdo (1-5)",
-      "Consistência Briefings (1-5)",
-      "Conhecimento Produto (1-5)",
-      "Adequação Segmentos (1-5)",
-      "Pontuação Personalização"
-    ];
-    
-    sheet.getRange(4, 1, 1, headers.length).setValues([headers]);
-    sheet.getRange(4, 1, 1, headers.length).setBackground("#e3f2fd").setFontWeight("bold");
-    
-    // Validação para pontuações (1-5)
-    var rangeValidation = SpreadsheetApp.newDataValidation()
-      .requireNumberBetween(1, 5)
-      .setAllowInvalid(false)
-      .build();
-    sheet.getRange("B5:G1000").setDataValidation(rangeValidation);
-    sheet.getRange("L5:P1000").setDataValidation(rangeValidation);
-    
-    // Fórmula para pontuação total
-    sheet.getRange("H5").setFormula("=SUM(B5:G5)");
-    sheet.getRange("H5:H1000").setFormula("=SUM(B5:G5)");
-    
-    // Fórmula para pontuação de personalização
-    sheet.getRange("Q5").setFormula("=SUM(L5:P5)");
-    sheet.getRange("Q5:Q1000").setFormula("=SUM(L5:P5)");
-    
-    // Formatação condicional para pontuações
-    var pontuacaoRange = sheet.getRange("H5:H1000");
-    var rule1 = SpreadsheetApp.newConditionalFormatRule()
-      .whenNumberGreaterThan(20)
-      .setBackground("#c8e6c9")
-      .build();
-    var rule2 = SpreadsheetApp.newConditionalFormatRule()
-      .whenNumberBetween(15, 20)
-      .setBackground("#fff9c4")
-      .build();
-    var rule3 = SpreadsheetApp.newConditionalFormatRule()
-      .whenNumberLessThan(15)
-      .setBackground("#ffcdd2")
-      .build();
-    pontuacaoRange.setConditionalFormatRules([rule1, rule2, rule3]);
-    
-    // Formatação condicional para pontuação de personalização
-    var personalizacaoRange = sheet.getRange("Q5:Q1000");
-    var rule4 = SpreadsheetApp.newConditionalFormatRule()
-      .whenNumberGreaterThan(20)
-      .setBackground("#c8e6c9")
-      .build();
-    var rule5 = SpreadsheetApp.newConditionalFormatRule()
-      .whenNumberBetween(15, 20)
-      .setBackground("#fff9c4")
-      .build();
-    var rule6 = SpreadsheetApp.newConditionalFormatRule()
-      .whenNumberLessThan(15)
-      .setBackground("#ffcdd2")
-      .build();
-    personalizacaoRange.setConditionalFormatRules([rule4, rule5, rule6]);
-    
-    // Adicionar instruções
-    var lastRow = 1000;
-    sheet.getRange(lastRow, 1, 1, headers.length).merge();
-    sheet.getRange(lastRow, 1).setValue("Instruções: Avalie cada creator em uma escala de 1 a 5 para todos os critérios. A pontuação total e de personalização ajudarão a identificar os creators mais adequados para diferentes tipos de campanhas.");
-    sheet.getRange(lastRow, 1).setFontStyle("italic").setBackground("#fff3e0");
-    
-    // Congelar cabeçalhos
-    sheet.setFrozenRows(4);
-    sheet.setFrozenColumns(1);
+  } catch (error) {
+    Logger.log("Erro ao aplicar formatação específica para " + nomeDaGuia + ": " + error.toString());
   }
 }
 
@@ -1908,4 +1611,297 @@ function inicializarPlaybookEngajamento() {
   // Congelar cabeçalhos
   sheet.setFrozenRows(4);
   sheet.setFrozenColumns(1);
+}
+
+/**
+ * Gerar relatório de desempenho
+ */
+function gerarRelatorio() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var mainSheet = ss.getSheetByName("Guia Principal");
+  var reportSheet = ss.getSheetByName("Relatório");
+  
+  if (!reportSheet) {
+    reportSheet = ss.insertSheet("Relatório");
+  }
+  
+  reportSheet.clear();
+  
+  // Configuração básica da planilha
+  reportSheet.setColumnWidth(1, 30);
+  reportSheet.setColumnWidth(2, 200);
+  reportSheet.setColumnWidth(3, 200);
+  reportSheet.setColumnWidth(4, 200);
+  reportSheet.setColumnWidth(5, 200);
+  reportSheet.setColumnWidth(6, 200);
+  reportSheet.setColumnWidth(7, 200);
+  
+  // Título do relatório
+  reportSheet.getRange("A1:G1").merge();
+  reportSheet.getRange("A1").setValue("RELATÓRIO DE DESEMPENHO - PROGRAMA DE CREATORS");
+  reportSheet.getRange("A1").setFontSize(16).setFontWeight("bold").setHorizontalAlignment("center");
+  reportSheet.getRange("A1:G1").setBackground("#4285F4").setFontColor("white");
+  
+  // Data do relatório
+  var today = new Date();
+  reportSheet.getRange("A2:G2").merge();
+  reportSheet.getRange("A2").setValue("Período: " + Utilities.formatDate(today, "GMT-3", "MMMM yyyy"));
+  reportSheet.getRange("A2").setHorizontalAlignment("center").setFontStyle("italic");
+  
+  // ===== SEÇÃO 1: VISÃO GERAL =====
+  var nextRow = 4;
+  reportSheet.getRange(nextRow, 1, 1, 7).merge();
+  reportSheet.getRange(nextRow, 1).setValue("1. VISÃO GERAL");
+  reportSheet.getRange(nextRow, 1).setFontWeight("bold").setFontSize(12);
+  reportSheet.getRange(nextRow, 1, 1, 7).setBackground("#e3f2fd");
+  
+  // Métricas principais
+  var metricas = [
+    ["Total de Creators", "=COUNTA('Guia Principal'!B2:B)"],
+    ["Parcerias Ativas", "=COUNTIF('Guia Principal'!L2:L, \"Parceria Ativa\")"],
+    ["Taxa de Conversão", "=COUNTIF('Guia Principal'!L2:L, \"Parceria Fechada\")/COUNTA('Guia Principal'!B2:B)"],
+    ["Média de Engajamento", "=AVERAGE('Guia Principal'!G2:G)"],
+    ["ROI Médio", "=IFERROR(AVERAGE('Histórico de Campanhas'!G2:G), 0)"]
+  ];
+  
+  for (var i = 0; i < metricas.length; i++) {
+    reportSheet.getRange(nextRow + 1 + i, 1).setValue(metricas[i][0]);
+    reportSheet.getRange(nextRow + 1 + i, 2).setFormula(metricas[i][1]);
+  }
+  
+  // ===== SEÇÃO 2: DISTRIBUIÇÃO POR PLATAFORMA =====
+  nextRow = nextRow + metricas.length + 3;
+  reportSheet.getRange(nextRow, 1, 1, 7).merge();
+  reportSheet.getRange(nextRow, 1).setValue("2. DISTRIBUIÇÃO POR PLATAFORMA");
+  reportSheet.getRange(nextRow, 1).setFontWeight("bold").setFontSize(12);
+  reportSheet.getRange(nextRow, 1, 1, 7).setBackground("#e3f2fd");
+  
+  // Tabela de plataformas
+  reportSheet.getRange(nextRow + 1, 1).setValue("Plataforma");
+  reportSheet.getRange(nextRow + 1, 2).setValue("Quantidade");
+  reportSheet.getRange(nextRow + 1, 3).setValue("% do Total");
+  
+  var plataformas = PLATAFORMAS;
+  for (var i = 0; i < plataformas.length; i++) {
+    reportSheet.getRange(nextRow + 2 + i, 1).setValue(plataformas[i]);
+    reportSheet.getRange(nextRow + 2 + i, 2).setFormula("=COUNTIF('Guia Principal'!E2:E, \"" + plataformas[i] + "\")");
+    reportSheet.getRange(nextRow + 2 + i, 3).setFormula("=IF(B" + (nextRow + 2 + i) + ">0, B" + (nextRow + 2 + i) + "/B" + (nextRow + 1) + ", 0)");
+  }
+  
+  // Formatação para percentuais
+  reportSheet.getRange(nextRow + 2, 3, plataformas.length).setNumberFormat("0.00%");
+  
+  // ===== SEÇÃO 3: DESEMPENHO POR TIER =====
+  nextRow = nextRow + plataformas.length + 3;
+  reportSheet.getRange(nextRow, 1, 1, 7).merge();
+  reportSheet.getRange(nextRow, 1).setValue("3. DESEMPENHO POR TIER");
+  reportSheet.getRange(nextRow, 1).setFontWeight("bold").setFontSize(12);
+  reportSheet.getRange(nextRow, 1, 1, 7).setBackground("#e3f2fd");
+  
+  // Tabela de tiers
+  var tiers = ["Tier 1 (Alta)", "Tier 2 (Média)", "Tier 3 (Baixa)", "Backlog"];
+  reportSheet.getRange(nextRow + 1, 1).setValue("Tier");
+  reportSheet.getRange(nextRow + 1, 2).setValue("Quantidade");
+  reportSheet.getRange(nextRow + 1, 3).setValue("Taxa de Conversão");
+  reportSheet.getRange(nextRow + 1, 4).setValue("Média Engajamento");
+  
+  for (var i = 0; i < tiers.length; i++) {
+    reportSheet.getRange(nextRow + 2 + i, 1).setValue(tiers[i]);
+    reportSheet.getRange(nextRow + 2 + i, 2).setFormula("=COUNTIF('Guia Principal'!Q2:Q, \"" + tiers[i] + "\")");
+    reportSheet.getRange(nextRow + 2 + i, 3).setFormula("=COUNTIFS('Guia Principal'!Q2:Q, \"" + tiers[i] + "\", 'Guia Principal'!L2:L, \"Parceria Fechada\")/B" + (nextRow + 2 + i));
+    reportSheet.getRange(nextRow + 2 + i, 4).setFormula("=AVERAGEIF('Guia Principal'!Q2:Q, \"" + tiers[i] + "\", 'Guia Principal'!G2:G)");
+  }
+  
+  // Formatação para percentuais
+  reportSheet.getRange(nextRow + 2, 3, tiers.length).setNumberFormat("0.00%");
+  reportSheet.getRange(nextRow + 2, 4, tiers.length).setNumberFormat("0.00%");
+  
+  // ===== SEÇÃO 4: CAMPANHAS RECENTES =====
+  nextRow = nextRow + tiers.length + 3;
+  reportSheet.getRange(nextRow, 1, 1, 7).merge();
+  reportSheet.getRange(nextRow, 1).setValue("4. CAMPANHAS RECENTES");
+  reportSheet.getRange(nextRow, 1).setFontWeight("bold").setFontSize(12);
+  reportSheet.getRange(nextRow, 1, 1, 7).setBackground("#e3f2fd");
+  
+  // Tabela de campanhas
+  reportSheet.getRange(nextRow + 1, 1).setValue("Data");
+  reportSheet.getRange(nextRow + 1, 2).setValue("Creator");
+  reportSheet.getRange(nextRow + 1, 3).setValue("Tipo");
+  reportSheet.getRange(nextRow + 1, 4).setValue("Resultado");
+  reportSheet.getRange(nextRow + 1, 5).setValue("ROI");
+  
+  // Busca as últimas 5 campanhas
+  var campSheet = ss.getSheetByName("Histórico de Campanhas");
+  if (campSheet) {
+    var campData = campSheet.getDataRange().getValues();
+    var campRow = Math.min(6, campData.length);
+    
+    for (var i = 1; i < campRow; i++) {
+      reportSheet.getRange(nextRow + 1 + i, 1).setValue(campData[i][2]); // Data
+      reportSheet.getRange(nextRow + 1 + i, 2).setValue(campData[i][1]); // Creator
+      reportSheet.getRange(nextRow + 1 + i, 3).setValue(campData[i][3]); // Tipo
+      reportSheet.getRange(nextRow + 1 + i, 4).setValue(campData[i][4]); // Resultado
+      reportSheet.getRange(nextRow + 1 + i, 5).setValue(campData[i][6]); // ROI
+    }
+  }
+  
+  // Formatação para ROI
+  reportSheet.getRange(nextRow + 2, 5, 4).setNumberFormat("0.00%");
+  
+  // ===== SEÇÃO 5: PRINCIPAIS INSIGHTS E RECOMENDAÇÕES =====
+  nextRow = Math.max(campRow + 2, nextRow + 12);
+  
+  reportSheet.getRange(nextRow, 1, 1, 7).merge();
+  reportSheet.getRange(nextRow, 1).setValue("5. INSIGHTS E RECOMENDAÇÕES");
+  reportSheet.getRange(nextRow, 1).setFontWeight("bold").setFontSize(12);
+  reportSheet.getRange(nextRow, 1, 1, 7).setBackground("#e3f2fd");
+  
+  reportSheet.getRange(nextRow + 1, 1, 1, 7).merge();
+  reportSheet.getRange(nextRow + 1, 1).setValue("Os insights e recomendações abaixo são baseados na análise dos dados do período:");
+  reportSheet.getRange(nextRow + 1, 1).setFontStyle("italic");
+  
+  // Adiciona linhas para insights
+  var insightsTexto = [
+    "• Distribuição por plataforma: " + getTopPlataforma(mainSheet) + " é a plataforma com maior número de creators.",
+    "• Qualificação: " + getTopQualificacao(ss) + " dos creators avaliados possuem pontuação 'Excelente'.",
+    "• Taxa de conversão: " + getTaxaConversao(mainSheet) + " dos creators contatados avançam para uma parceria.",
+    "• Engajamento: A média de engajamento dos creators ativos é de " + getMediaEngajamento(mainSheet) + "%.",
+    "",
+    "Recomendações:",
+    "1. [Incluir recomendações baseadas nos dados, como focar em determinadas plataformas ou tipos de creators]",
+    "2. [Recomendação de ajuste na estratégia com base na análise dos resultados]",
+    "3. [Sugestões para melhorar a taxa de conversão ou outros KPIs relevantes]"
+  ];
+  
+  for (var i = 0; i < insightsTexto.length; i++) {
+    reportSheet.getRange(nextRow + 2 + i, 1, 1, 7).merge();
+    reportSheet.getRange(nextRow + 2 + i, 1).setValue(insightsTexto[i]);
+  }
+  
+  // Ajusta largura das colunas
+  reportSheet.autoResizeColumns(1, 7);
+  
+  // Protege o relatório contra edições acidentais
+  var protection = reportSheet.protect().setDescription("Proteger Relatório");
+  protection.setWarningOnly(true);
+  
+  // Exibe mensagem
+  SpreadsheetApp.getUi().alert("Relatório gerado com sucesso!");
+}
+
+function criarCreatorExemplo() {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    
+    // Adiciona dados na Guia Principal
+    var mainSheet = ss.getSheetByName("Guia Principal");
+    var mainNextRow = mainSheet.getLastRow() + 1;
+    
+    var mainData = [
+      "CR" + new Date().getTime().toString().slice(-6), // ID
+      "TechReview Pro", // Nome
+      "Tecnologia", // Categoria
+      "Reviews de Produtos", // Nicho Específico
+      "YouTube", // Plataforma Principal
+      150000, // Seguidores
+      0.08, // Engajamento (%)
+      "techreview@example.com", // Email
+      "+5511999999999", // WhatsApp
+      "https://youtube.com/techreviewpro", // Link Perfil
+      new Date(), // Data Primeiro Contato
+      "Confirmado", // Status Contato
+      "Marcar Reunião", // Próxima Ação
+      new Date(new Date().setDate(new Date().getDate() + 5)), // Data Reunião
+      "14:00", // Horário Reunião
+      "João Silva", // Responsável Interno
+      "Tier 1 (Alta)", // Prioridade
+      "Qualificação", // Etapa Jornada Compra
+      "Avançado", // Nível Personalização
+      "Creator especializado em reviews de produtos tecnológicos" // Notas
+    ];
+    
+    mainSheet.getRange(mainNextRow, 1, 1, mainData.length).setValues([mainData]);
+    
+    // Adiciona dados na Qualificação dos Creators
+    var qualSheet = ss.getSheetByName("Qualificação dos Creators");
+    var qualNextRow = qualSheet.getLastRow() + 1;
+    
+    var qualData = [
+      "TechReview Pro", // Nome Creator
+      5, // Potencial Alcance (1-5)
+      5, // Relevância para Audiência (1-5)
+      5, // Compatibilidade com Marca (1-5)
+      5, // Qualidade de Conteúdo (1-5)
+      5, // Engajamento da Audiência (1-5)
+      5, // Histórico de Conversão (1-5)
+      "=SUM(B" + qualNextRow + ":G" + qualNextRow + ")", // Pontuação Total
+      "=IF(H" + qualNextRow + ">=20, \"Excelente (20-25)\", IF(H" + qualNextRow + ">=15, \"Bom (15-19)\", IF(H" + qualNextRow + ">=10, \"Regular (10-14)\", \"Baixo Potencial (<10)\")))", // Status Qualificação
+      "Estratégico", // Segmento
+      "Tier 1 (Alta)" // Tier de Prioridade
+    ];
+    
+    qualSheet.getRange(qualNextRow, 1, 1, qualData.length).setValues([qualData]);
+    
+    // Adiciona dados no Perfil Detalhado do Creator
+    var perfilSheet = ss.getSheetByName("Perfil Detalhado do Creator");
+    var perfilNextRow = perfilSheet.getLastRow() + 1;
+    
+    var perfilData = [
+      "TechReview Pro", // Nome Creator
+      "Decisor", // Papel Decisão
+      "Crescimento do canal e parcerias com marcas", // Objetivos Pessoais
+      "Precisa de liberdade criativa e tempo para produção", // Riscos ou Objeções
+      "Profissional e técnico", // Estilo de Comunicação
+      "Marques Brownlee, Unbox Therapy", // Influenciadores
+      "Suporte técnico e material para reviews", // Necessidades Específicas
+      "Primeiro contato realizado, aguardando reunião" // Histórico de Relacionamento
+    ];
+    
+    perfilSheet.getRange(perfilNextRow, 1, 1, perfilData.length).setValues([perfilData]);
+    
+    // Adiciona dados no Histórico de Campanhas
+    var campSheet = ss.getSheetByName("Histórico de Campanhas");
+    var campNextRow = campSheet.getLastRow() + 1;
+    
+    var campData = [
+      "CR" + new Date().getTime().toString().slice(-6), // ID Creator
+      "TechReview Pro", // Nome Creator
+      new Date(), // Data Campanha
+      "Review de Produto", // Tipo Campanha
+      "Em Andamento", // Resultado
+      "150k views, 12k likes", // Métricas de Desempenho
+      0.85, // ROI Estimado
+      "Positivo, gostou da liberdade criativa" // Feedback Creator
+    ];
+    
+    campSheet.getRange(campNextRow, 1, 1, campData.length).setValues([campData]);
+    
+    // Adiciona dados no Calendário Editorial
+    var calSheet = ss.getSheetByName("Calendário Editorial");
+    var calNextRow = calSheet.getLastRow() + 1;
+    
+    var calData = [
+      getWeekNumber(new Date()), // Semana
+      "TechReview Pro", // Creator
+      "Review do Novo Smartphone XYZ", // Tema
+      "Vídeo Review + Unboxing", // Formato
+      "YouTube", // Plataforma
+      new Date(new Date().setDate(new Date().getDate() + 10)), // Data Publicação
+      "Em Produção", // Status
+      "", // Link do Conteúdo
+      "", // Métricas
+      "Incluir unboxing e testes de performance" // Observações
+    ];
+    
+    calSheet.getRange(calNextRow, 1, 1, calData.length).setValues([calData]);
+    
+    // Atualiza estatísticas
+    atualizarEstatisticas();
+    
+    // Exibe mensagem de sucesso
+    SpreadsheetApp.getUi().alert("Creator exemplo 'TechReview Pro' adicionado com sucesso!\n\nVocê pode usar este exemplo como referência para adicionar mais creators.");
+    
+  } catch (error) {
+    SpreadsheetApp.getUi().alert("Erro ao criar creator exemplo: " + error.toString());
+  }
 }
